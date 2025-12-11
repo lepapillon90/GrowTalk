@@ -23,6 +23,12 @@ export default function FriendsPage() {
         return () => unsubscribe();
     }, [initializeAuth]);
 
+    const [imageError, setImageError] = useState(false);
+
+    useEffect(() => {
+        setImageError(false);
+    }, [user?.photoURL]);
+
     useEffect(() => {
         if (!loading && !user) {
             router.replace("/login");
@@ -74,8 +80,13 @@ export default function FriendsPage() {
                 {/* My Profile */}
                 <div className="flex items-center gap-4 py-2">
                     <div className="relative w-16 h-16 rounded-2xl bg-bg-paper overflow-hidden border border-white/5 flex items-center justify-center">
-                        {user.photoURL ? (
-                            <Image src={user.photoURL} alt="Profile" fill className="object-cover" />
+                        {user.photoURL && !imageError ? (
+                            <img
+                                src={user.photoURL}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                                onError={() => setImageError(true)}
+                            />
                         ) : (
                             <UserIcon className="w-8 h-8 text-text-secondary" />
                         )}
