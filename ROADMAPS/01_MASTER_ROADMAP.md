@@ -76,7 +76,9 @@
 - [x] **4.1. Deployment**
     - PWA Configuration (manifest.json, Icon)
     - Vercel Deployment (Live URL Generated)
-    - Domain Setup
+
+- [ ] **4.2. Custom Domain (Optional)**
+    - Domain Purchase & Vercel Connection
 
 ---
 
