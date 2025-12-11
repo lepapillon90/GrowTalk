@@ -18,6 +18,7 @@ export default function ProfileEditPage() {
     const [photoURL, setPhotoURL] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -26,6 +27,7 @@ export default function ProfileEditPage() {
             setName(userProfile.displayName || "");
             setStatusMessage(userProfile.statusMessage || "");
             setPhotoURL(userProfile.photoURL || null);
+            setImageError(false);
         }
     }, [userProfile]);
 
@@ -125,8 +127,13 @@ export default function ProfileEditPage() {
                 {/* Profile Image */}
                 <div className="relative group">
                     <div className="w-28 h-28 rounded-3xl bg-bg-paper border-2 border-white/5 overflow-hidden relative">
-                        {photoURL ? (
-                            <img src={photoURL} alt="Profile" className="w-full h-full object-cover" />
+                        {photoURL && !imageError ? (
+                            <img
+                                src={photoURL}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                                onError={() => setImageError(true)}
+                            />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-bg-paper">
                                 <User className="w-12 h-12 text-text-secondary/50" />

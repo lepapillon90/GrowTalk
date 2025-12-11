@@ -1,4 +1,4 @@
-"use client";
+import { useState, useEffect } from "react";
 
 import TopNavigation from "@/components/layout/TopNavigation";
 import { Settings, LogOut, Info, User } from "lucide-react";
@@ -9,6 +9,12 @@ import Link from "next/link";
 export default function MorePage() {
     const { signOut, user, userProfile } = useAuthStore();
     const router = useRouter();
+    const [imageError, setImageError] = useState(false);
+
+    // Reset error when profile changes
+    useEffect(() => {
+        setImageError(false);
+    }, [userProfile?.photoURL]);
 
     const handleLogout = async () => {
         await signOut();
@@ -29,9 +35,14 @@ export default function MorePage() {
                 {/* User Info Summary */}
                 <Link href="/more/edit-profile">
                     <div className="bg-bg-paper rounded-2xl p-6 border border-white/5 flex items-center gap-4 active:scale-[0.98] transition-transform">
-                        <div className="w-12 h-12 bg-bg rounded-xl flex items-center justify-center text-text-primary font-bold text-xl border border-white/10 overflow-hidden">
-                            {userProfile?.photoURL ? (
-                                <img src={userProfile.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                        <div className="w-12 h-12 bg-bg rounded-xl flex items-center justify-center text-text-primary font-bold text-xl border border-white/10 overflow-hidden relative">
+                            {userProfile?.photoURL && !imageError ? (
+                                <img
+                                    src={userProfile.photoURL}
+                                    alt="Profile"
+                                    className="w-full h-full object-cover"
+                                    onError={() => setImageError(true)}
+                                />
                             ) : (
                                 <User className="w-6 h-6 text-text-secondary" />
                             )}
