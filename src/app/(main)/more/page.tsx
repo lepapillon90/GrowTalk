@@ -4,9 +4,10 @@ import TopNavigation from "@/components/layout/TopNavigation";
 import { Settings, LogOut, Info } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function MorePage() {
-    const { signOut, user } = useAuthStore();
+    const { signOut, user, userProfile } = useAuthStore();
     const router = useRouter();
 
     const handleLogout = async () => {
@@ -26,15 +27,24 @@ export default function MorePage() {
             <div className="pt-16 px-4 space-y-6">
 
                 {/* User Info Summary */}
-                <div className="bg-bg-paper rounded-2xl p-6 border border-white/5 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-bg rounded-xl flex items-center justify-center text-text-primary font-bold text-xl border border-white/10">
-                        {user?.displayName?.[0] || "?"}
+                <Link href="/more/edit-profile">
+                    <div className="bg-bg-paper rounded-2xl p-6 border border-white/5 flex items-center gap-4 active:scale-[0.98] transition-transform">
+                        <div className="w-12 h-12 bg-bg rounded-xl flex items-center justify-center text-text-primary font-bold text-xl border border-white/10 overflow-hidden">
+                            {userProfile?.photoURL ? (
+                                <img src={userProfile.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                userProfile?.displayName?.[0] || "?"
+                            )}
+                        </div>
+                        <div className="flex-1">
+                            <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                                {userProfile?.displayName || "사용자"}
+                                <span className="text-xs font-normal text-text-secondary bg-white/5 px-2 py-0.5 rounded-full">편집</span>
+                            </h2>
+                            <p className="text-sm text-text-secondary truncate">{userProfile?.statusMessage || user?.email}</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-text-primary">{user?.displayName || "사용자"}</h2>
-                        <p className="text-sm text-text-secondary">{user?.email}</p>
-                    </div>
-                </div>
+                </Link>
 
                 {/* Menu List */}
                 <div className="space-y-2">

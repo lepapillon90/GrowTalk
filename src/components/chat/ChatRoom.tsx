@@ -7,7 +7,10 @@ import {
     orderBy,
     onSnapshot,
     addDoc,
-    serverTimestamp
+    serverTimestamp,
+    updateDoc,
+    doc,
+    getDoc
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage imports
 import { db, storage } from "@/lib/firebase"; // Storage instance
@@ -32,26 +35,75 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [chatData, setChatData] = useState<any>(null);
+    const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({}); // Added participantProfiles state
 
     useEffect(() => {
-        if (!chatId) return;
+        if (!chatId || !user) return;
 
+        // 1. Subscribe to Messages
         const q = query(
             collection(db, "chats", chatId, "messages"),
             orderBy("createdAt", "asc")
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribeMessages = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data(),
             }));
             setMessages(msgs);
-            setTimeout(scrollToBottom, 100);
+            setTimeout(scrollToBottom, 500); // Changed delay to 500
         });
 
-        return () => unsubscribe();
-    }, [chatId]);
+        // 2. Subscribe to Chat Metadata & Fetch Profiles
+        const docRef = doc(db, "chats", chatId);
+        const unsubscribeChat = onSnapshot(docRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setChatData(data);
+
+                // Fetch Participant Profiles if not loaded
+                if (data.participants && data.participants.length > 0) {
+                    // We can't use 'in' query for > 10 items, but for now it's fine.
+                    // Or just fetch individual docs.
+                    const unknownUids = data.participants.filter((uid: string) => !participantProfiles[uid]);
+
+                    if (unknownUids.length > 0) {
+                        const newProfiles: Record<string, any> = {};
+                        // Fetch in batches (simple Promise.all for now)
+                        await Promise.all(unknownUids.map(async (uid: string) => {
+                            const userSnap = await getDoc(doc(db, "users", uid));
+                            if (userSnap.exists()) {
+                                newProfiles[uid] = userSnap.data();
+                            }
+                        }));
+
+                        setParticipantProfiles(prev => ({ ...prev, ...newProfiles }));
+                    }
+                }
+            }
+        });
+
+        return () => {
+            unsubscribeMessages();
+            unsubscribeChat();
+        };
+    }, [chatId, user]);
+
+    // Separate effect to mark as read when messages change
+    useEffect(() => {
+        if (!chatId || !user || messages.length === 0) return;
+
+        const updateReadStatus = async () => {
+            const docRef = doc(db, "chats", chatId);
+            await updateDoc(docRef, {
+                [`lastRead.${user.uid}`]: serverTimestamp()
+            });
+        }
+
+        updateReadStatus();
+    }, [chatId, user, messages.length]); // Trigget when new message arrives
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,27 +117,36 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if ((!newMessage.trim() && !imageFile) || !user) return; // Prevent empty send
+        if ((!newMessage.trim() && !imageFile) || !user) return;
 
         setIsUploading(true);
 
         try {
             let imageUrl = "";
 
-            // 1. Upload Image if exists
             if (imageFile) {
                 const storageRef = ref(storage, `chats/${chatId}/${Date.now()}_${imageFile.name}`);
                 const snapshot = await uploadBytes(storageRef, imageFile);
                 imageUrl = await getDownloadURL(snapshot.ref);
             }
 
-            // 2. Add Document to Firestore
-            await addDoc(collection(db, "chats", chatId, "messages"), {
+            // Batch writes or normal updates
+            const messageData = {
                 text: newMessage,
                 imageUrl: imageUrl || null,
                 senderId: user.uid,
                 createdAt: serverTimestamp(),
                 type: imageUrl ? "image" : "text",
+            };
+
+            await addDoc(collection(db, "chats", chatId, "messages"), messageData);
+
+            // Update Chat Last Message
+            await updateDoc(doc(db, "chats", chatId), {
+                lastMessage: messageData.type === 'image' ? '사진' : messageData.text,
+                updatedAt: serverTimestamp(),
+                // Optimistically update my read status too
+                [`lastRead.${user.uid}`]: serverTimestamp()
             });
 
             setNewMessage("");
@@ -100,13 +161,50 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
         }
     };
 
+    const getChatTitle = () => {
+        if (!chatData) return "로딩 중...";
+        if (chatData.name && chatData.type === 'group') return chatData.name;
+
+        // Dynamic title for 1:1 or if no name
+        // Filter out me
+        const others = chatData.participants?.filter((uid: string) => uid !== user?.uid) || [];
+        if (others.length === 0) return "나와의 채팅";
+        if (others.length === 1) {
+            return participantProfiles[others[0]]?.displayName || "알 수 없는 사용자";
+        }
+        return `${participantProfiles[others[0]]?.displayName || "?"} 외 ${others.length - 1}명`;
+    };
+
     return (
         <div className="flex flex-col h-full bg-bg">
+            {/* Header - We likely need to render TopNavigation OUTSIDE ChatRoom if ChatRoom is just content... 
+                But based on previous logs, ChatPage does NOT render ChatRoom. 
+                Wait, /src/app/(main)/chats/[id]/page.tsx is likely where ChatRoom is used.
+                Let's assume ChatRoom handles full page layout OR creates its own Header?
+                Actually looking at ChatRoom.tsx, it creates "flex flex-col h-full".
+                It DOES NOT currently render TopNavigation. TopNavigation is probably in the PARENT [id]/page.tsx.
+                I need to check [id]/page.tsx.
+                For now, let's just make sure MessageBubble gets the right name.
+            */}
+
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
                 {messages.map((msg, index) => {
                     const isMe = msg.senderId === user?.uid;
                     const showProfile = !isMe && (index === 0 || messages[index - 1].senderId !== msg.senderId);
+
+                    let unreadCount = 0;
+                    if (chatData && chatData.participants && chatData.lastRead) {
+                        const otherParticipants = chatData.participants.filter((uid: string) => uid !== user?.uid);
+                        otherParticipants.forEach((uid: string) => {
+                            const userReadTime = chatData.lastRead[uid];
+                            if (!userReadTime || (msg.createdAt && userReadTime < msg.createdAt)) {
+                                unreadCount++;
+                            }
+                        });
+                    }
+
+                    const senderProfile = participantProfiles[msg.senderId];
 
                     return (
                         <MessageBubble
@@ -114,7 +212,9 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                             message={msg}
                             isMe={isMe}
                             showProfile={showProfile}
-                            displayName="상대방"
+                            profileUrl={senderProfile?.photoURL}
+                            displayName={senderProfile?.displayName || "알 수 없음"}
+                            unreadCount={unreadCount}
                         />
                     );
                 })}

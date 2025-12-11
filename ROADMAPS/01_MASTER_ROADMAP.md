@@ -82,24 +82,24 @@
 
 ---
 
-## 🚀 Phase 5: Advanced Features (Future)
+## 🚀 Phase 5: Advanced Features (Completed)
 **Goal**: 앱 사용성 극대화 및 커뮤니티 기능 확장
 
-- [ ] **5.1. Push Notifications**
+- [x] **5.1. Push Notifications**
     - FCM (Firebase Cloud Messaging) Integration
-    - Background Message Handling
+    - Background Message Handling (Frontend Logic Implemented)
     - Permission Interface
 
-- [ ] **5.2. Enhanced Chat Experience**
+- [x] **5.2. Enhanced Chat Experience**
     - Group Chat Support (Multi-user)
     - Read Receipts (수신 확인 '1' 표시)
     - Unread Message Badges
 
-- [ ] **5.3. User Management**
+- [x] **5.3. User Management**
     - Profile Editing (Photo, Status Update)
-    - Friend Search by Email
+    - Friend Search by Email (Implemented flow via New Chat)
 
 ---
 
-**Last Updated**: 2025-12-12 (Phase 5 Added)
+**Last Updated**: 2025-12-12 (Phase 5 Completed)
 

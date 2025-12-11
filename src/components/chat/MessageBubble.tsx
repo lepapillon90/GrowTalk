@@ -14,6 +14,7 @@ interface MessageBubbleProps {
     showProfile?: boolean; // For group chats or receiver's first message
     profileUrl?: string; // Receiver's profile image
     displayName?: string; // Receiver's name
+    unreadCount?: number;
 }
 
 export default function MessageBubble({
@@ -21,7 +22,8 @@ export default function MessageBubble({
     isMe,
     showProfile = false,
     profileUrl,
-    displayName
+    displayName,
+    unreadCount = 0
 }: MessageBubbleProps) {
 
     // Format time (e.g., "오전 10:30")
@@ -54,7 +56,14 @@ export default function MessageBubble({
 
                 <div className="flex items-end gap-1.5">
                     {/* Time (Left for Me) */}
-                    {isMe && <span className="text-[10px] text-text-secondary min-w-fit mb-1">{formattedTime}</span>}
+                    {isMe && (
+                        <div className="flex flex-col items-end">
+                            {unreadCount > 0 && (
+                                <span className="text-[10px] text-brand-500 font-bold mb-0.5">{unreadCount}</span>
+                            )}
+                            <span className="text-[10px] text-text-secondary min-w-fit mb-1">{formattedTime}</span>
+                        </div>
+                    )}
 
                     {/* Bubble */}
                     <div

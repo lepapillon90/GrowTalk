@@ -57,7 +57,7 @@ export default function ChatsPage() {
                 rightAction={
                     <div className="flex items-center gap-4">
                         <button className="text-text-primary hover:text-text-accent transition-colors"><Search className="w-6 h-6" /></button>
-                        <button onClick={createMockChat} className="text-text-primary hover:text-text-accent transition-colors"><PlusCircle className="w-6 h-6" /></button>
+                        <Link href="/chats/new" className="text-text-primary hover:text-text-accent transition-colors"><PlusCircle className="w-6 h-6" /></Link>
                     </div>
                 }
             />
@@ -90,8 +90,23 @@ export default function ChatsPage() {
                                     <p className="text-sm text-text-secondary truncate pr-4">
                                         {chat.lastMessage || "대화가 없습니다."}
                                     </p>
-                                    {/* Unread Badge Mock */}
-                                    {false && <span className="bg-brand-500 text-bg text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">N</span>}
+                                    {/* Unread Badge Logic */}
+                                    {(() => {
+                                        if (!chat.updatedAt || !user) return null;
+
+                                        // If I haven't read it at all, or last read is before updated at
+                                        const myLastRead = chat.lastRead?.[user.uid];
+                                        const isUnread = !myLastRead || (chat.updatedAt?.toMillis?.() || 0) > (myLastRead?.toMillis?.() || 0);
+
+                                        if (isUnread) {
+                                            return (
+                                                <span className="bg-brand-500 text-bg text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[32px] text-center">
+                                                    New
+                                                </span>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
                             </div>
                         </Link>

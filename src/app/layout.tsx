@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
 import ToasterProvider from "@/components/providers/ToasterProvider";
+import FCMInitializer from "@/components/providers/FCMInitializer";
 
 const nanumMyeongjo = Nanum_Myeongjo({
   weight: ["400", "700", "800"],
-  subsets: ["latin"], // Note: Google Fonts might not explicitly list 'korean' in subsets type but it loads.
+  subsets: ["latin"],
   variable: "--font-serif",
 });
 
@@ -43,6 +44,7 @@ export default function RootLayout({
       >
         <div className="mx-auto max-w-[430px] h-[100dvh] bg-bg relative shadow-2xl overflow-hidden flex flex-col">
           <ToasterProvider />
+          <FCMInitializer />
           {children}
         </div>
       </body>

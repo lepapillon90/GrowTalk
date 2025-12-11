@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { MessageCircle } from "lucide-react";
 
 export default function LoginPage() {
@@ -25,6 +26,39 @@ export default function LoginPage() {
         } catch (err: any) {
             console.error("Login error:", err);
             setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleLogin = async () => {
+        try {
+            setLoading(true);
+            setError("");
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Check if user exists in Firestore
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.exists()) {
+                // Register new user
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    displayName: user.displayName || "사용자",
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    statusMessage: "",
+                    createdAt: new Date().toISOString(),
+                });
+            }
+
+            router.push("/friends");
+        } catch (err: any) {
+            console.error("Google Login Error:", err);
+            setError("구글 로그인 중 오류가 발생했습니다.");
         } finally {
             setLoading(false);
         }
@@ -54,6 +88,7 @@ export default function LoginPage() {
                             placeholder="example@email.com"
                             className="w-full bg-bg-paper text-white border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 transition-colors"
                             required
+                            maxLength={50}
                         />
                     </div>
 
@@ -66,6 +101,7 @@ export default function LoginPage() {
                             placeholder="비밀번호 입력"
                             className="w-full bg-bg-paper text-white border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 transition-colors"
                             required
+                            maxLength={20}
                         />
                     </div>
 
@@ -91,8 +127,9 @@ export default function LoginPage() {
                 <div className="w-full flex flex-col gap-3">
                     <button
                         className="w-full bg-white text-black font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
-                        onClick={() => alert("구글 로그인은 추후 연동 예정입니다.")}
+                        onClick={handleGoogleLogin}
                         type="button"
+                        disabled={loading}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
                             <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
@@ -117,7 +154,7 @@ export default function LoginPage() {
                 <div className="flex justify-center gap-6 text-sm text-text-secondary mt-4">
                     <Link href="/signup" className="hover:text-white transition-colors">회원가입</Link>
                     <span className="text-white/10">|</span>
-                    <Link href="#" className="hover:text-white transition-colors">비밀번호 찾기</Link>
+                    <Link href="/forgot-password" className="hover:text-white transition-colors">비밀번호 찾기</Link>
                 </div>
             </div>
         </div>

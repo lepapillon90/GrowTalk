@@ -76,6 +76,7 @@ export default function SignupPage() {
                             placeholder="홍길동"
                             className="w-full bg-bg-paper text-white border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 transition-colors"
                             required
+                            maxLength={20}
                         />
                     </div>
 
@@ -88,6 +89,7 @@ export default function SignupPage() {
                             placeholder="example@email.com"
                             className="w-full bg-bg-paper text-white border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 transition-colors"
                             required
+                            maxLength={50}
                         />
                     </div>
 
@@ -100,6 +102,7 @@ export default function SignupPage() {
                             placeholder="6자리 이상 입력"
                             className="w-full bg-bg-paper text-white border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-500 transition-colors"
                             required
+                            maxLength={20}
                         />
                     </div>
 
