@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { User as UserIcon, Search, UserPlus } from "lucide-react";
+import { User as UserIcon, Search, UserPlus, MessageCircle as MessageIcon } from "lucide-react"; // Renamed MessageCircle to prevent conflict
 import { useRouter } from "next/navigation";
+import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function FriendsPage() {
     const router = useRouter();
     const { user, loading, initializeAuth } = useAuthStore();
+    // Mock Friends Data for now - In real app, this comes from 'friends' subcollection
+    const mockFriends = [
+        { uid: "mock_user_1", name: "김철수", status: "오늘 저녁 뭐 먹지?" },
+        { uid: "mock_user_2", name: "이영희", status: "주말에 등산 가자!" }
+    ];
 
     useEffect(() => {
         const unsubscribe = initializeAuth();
@@ -22,9 +29,31 @@ export default function FriendsPage() {
         }
     }, [user, loading, router]);
 
-    if (loading) {
-        return <div className="flex items-center justify-center h-screen bg-bg text-text-secondary">Loading...</div>;
-    }
+    const startChat = async (friendUid: string, friendName: string) => {
+        if (!user) return;
+
+        try {
+            // Check if chat already exists (simplified check)
+            // In production, we'd query for existing 1:1 chat
+
+            // Create new chat
+            const docRef = await addDoc(collection(db, "chats"), {
+                participants: [user.uid, friendUid],
+                name: `${friendName}, ${user.displayName}`, // Default name
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                lastMessage: "대화가 시작되었습니다.",
+                type: "individual"
+            });
+
+            router.push(`/chat/${docRef.id}`);
+        } catch (error) {
+            console.error("Error creating chat:", error);
+            alert("채팅방 생성 실패");
+        }
+    };
+
+    if (loading) return null; // Or skeleton
 
     if (!user) return null;
 
@@ -53,37 +82,30 @@ export default function FriendsPage() {
                     </div>
                     <div className="flex-1">
                         <h2 className="text-lg font-bold text-text-primary">{user.displayName || "이름 없음"}</h2>
-                        <p className="text-sm text-text-secondary line-clamp-1">{/* Status Message */ "상태 메시지를 입력해주세요."}</p>
+                        <p className="text-sm text-text-secondary line-clamp-1">{user.email}</p>
                     </div>
                 </div>
 
                 <hr className="border-white/5" />
 
-                {/* Friend List (Mock) */}
+                {/* Friend List (Mock with Action) */}
                 <div>
-                    <p className="text-xs text-text-secondary mb-3">친구 2</p>
+                    <p className="text-xs text-text-secondary mb-3">친구 {mockFriends.length}</p>
                     <div className="space-y-4">
-                        {/* Friend Item 1 */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-bg-paper border border-white/5 flex items-center justify-center">
-                                <UserIcon className="w-6 h-6 text-text-secondary/50" />
+                        {mockFriends.map((friend) => (
+                            <div key={friend.uid} className="flex items-center gap-3 group cursor-pointer" onClick={() => startChat(friend.uid, friend.name)}>
+                                <div className="w-12 h-12 rounded-xl bg-bg-paper border border-white/5 flex items-center justify-center group-hover:border-brand-500/50 transition-colors">
+                                    <UserIcon className="w-6 h-6 text-text-secondary/50" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-base font-medium text-text-primary">{friend.name}</h3>
+                                    <p className="text-xs text-text-secondary">{friend.status}</p>
+                                </div>
+                                <button className="p-2 text-text-secondary hover:text-brand-500 transition-colors">
+                                    <MessageIcon className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div>
-                                <h3 className="text-base font-medium text-text-primary">김철수</h3>
-                                <p className="text-xs text-text-secondary">오늘 저녁 뭐 먹지?</p>
-                            </div>
-                        </div>
-
-                        {/* Friend Item 2 */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-bg-paper border border-white/5 flex items-center justify-center">
-                                <UserIcon className="w-6 h-6 text-text-secondary/50" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-medium text-text-primary">이영희</h3>
-                                <p className="text-xs text-text-secondary">주말에 등산 가자!</p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
 

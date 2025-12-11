@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
+import ToasterProvider from "@/components/providers/ToasterProvider";
 
 const nanumMyeongjo = Nanum_Myeongjo({
   weight: ["400", "700", "800"],
@@ -11,7 +12,6 @@ const nanumMyeongjo = Nanum_Myeongjo({
 export const metadata: Metadata = {
   title: "GrowTalk - 품격 있는 대화",
   description: "성장하는 사람들의 품격 있는 대화, GrowTalk",
-  overflow: "hidden", // Prevent scrolling outside mobile view
 };
 
 export const viewport: Viewport = {
@@ -32,6 +32,7 @@ export default function RootLayout({
         className={`${nanumMyeongjo.variable} font-sans antialiased bg-bg text-text-primary overflow-hidden`}
       >
         <div className="mx-auto max-w-[430px] h-[100dvh] bg-bg relative shadow-2xl overflow-hidden flex flex-col">
+          <ToasterProvider />
           {children}
         </div>
       </body>
