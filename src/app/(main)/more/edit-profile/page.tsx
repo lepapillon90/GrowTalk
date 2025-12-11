@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Camera, X, Loader2 } from "lucide-react";
-import { uploadBytes, getDownloadURL, ref } from "firebase/storage";
+import { uploadBytes, getDownloadURL, ref, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import toast from "react-hot-toast";
 
@@ -74,11 +74,27 @@ export default function ProfileEditPage() {
 
         try {
             setIsSaving(true);
+            const oldPhotoURL = userProfile?.photoURL;
+            const isPhotoChanged = oldPhotoURL !== photoURL;
+
             await updateUserProfile({
                 displayName: name,
                 statusMessage: statusMessage,
                 photoURL: photoURL
             });
+
+            // Delete old image if verified specific conditions
+            if (isPhotoChanged && oldPhotoURL && oldPhotoURL.includes("firebasestorage")) {
+                try {
+                    const oldRef = ref(storage, oldPhotoURL);
+                    await deleteObject(oldRef);
+                    console.log("Old profile image deleted.");
+                } catch (err) {
+                    console.error("Failed to delete old image:", err);
+                    // We don't block the UI for this background cleanup error
+                }
+            }
+
             toast.success("프로필이 저장되었습니다.");
             router.back();
         } catch (error) {
