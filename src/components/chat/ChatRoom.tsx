@@ -35,8 +35,14 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messageInputRef = useRef<HTMLInputElement>(null); // Moved to top
     const [chatData, setChatData] = useState<any>(null);
     const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({}); // Added participantProfiles state
+
+    useEffect(() => {
+        // Auto-focus input on mount
+        messageInputRef.current?.focus();
+    }, []); // Moved to top
 
     useEffect(() => {
         if (!chatId || !user) return;
@@ -246,6 +252,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
 
                     <div className="flex-1 relative">
                         <input
+                            ref={messageInputRef}
                             type="text"
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
