@@ -1,5 +1,7 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { User } from "lucide-react";
+import { useState } from "react";
 
 interface MessageBubbleProps {
     message: {
@@ -25,6 +27,7 @@ export default function MessageBubble({
     displayName,
     unreadCount = 0
 }: MessageBubbleProps) {
+    const [imageError, setImageError] = useState(false);
 
     // Format time (e.g., "오전 10:30")
     const formattedTime = message.createdAt?.toDate
@@ -40,9 +43,17 @@ export default function MessageBubble({
             {!isMe && (
                 <div className="flex flex-col items-center mr-2 w-10">
                     {showProfile && (
-                        <div className="w-10 h-10 rounded-xl bg-bg-paper border border-white/5 overflow-hidden">
-                            {/* Replace with Image component later */}
-                            {profileUrl ? <img src={profileUrl} alt="Profile" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-700" />}
+                        <div className="w-10 h-10 rounded-xl bg-bg-paper border border-white/5 overflow-hidden flex items-center justify-center">
+                            {profileUrl && !imageError ? (
+                                <img
+                                    src={profileUrl}
+                                    alt="Profile"
+                                    className="w-full h-full object-cover"
+                                    onError={() => setImageError(true)}
+                                />
+                            ) : (
+                                <User className="w-6 h-6 text-text-secondary/50" />
+                            )}
                         </div>
                     )}
                 </div>
