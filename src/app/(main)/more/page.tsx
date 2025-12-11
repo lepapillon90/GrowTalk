@@ -1,7 +1,7 @@
 "use client";
 
 import TopNavigation from "@/components/layout/TopNavigation";
-import { Settings, LogOut, Info } from "lucide-react";
+import { Settings, LogOut, Info, User } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -33,7 +33,7 @@ export default function MorePage() {
                             {userProfile?.photoURL ? (
                                 <img src={userProfile.photoURL} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
-                                userProfile?.displayName?.[0] || "?"
+                                <User className="w-6 h-6 text-text-secondary" />
                             )}
                         </div>
                         <div className="flex-1">

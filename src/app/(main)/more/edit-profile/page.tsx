@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Camera, X, Loader2 } from "lucide-react";
+import { Camera, X, Loader2, User } from "lucide-react";
 import { uploadBytes, getDownloadURL, ref, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import toast from "react-hot-toast";
@@ -128,8 +128,8 @@ export default function ProfileEditPage() {
                         {photoURL ? (
                             <img src={photoURL} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-text-secondary/30">
-                                {name?.[0] || "?"}
+                            <div className="w-full h-full flex items-center justify-center bg-bg-paper">
+                                <User className="w-12 h-12 text-text-secondary/50" />
                             </div>
                         )}
 
