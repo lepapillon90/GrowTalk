@@ -1,0 +1,21 @@
+{
+    "name": "GrowTalk - 품격 있는 대화",
+    "short_name": "GrowTalk",
+    "description": "성장하는 사람들의 품격 있는 대화, GrowTalk",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0B0C15",
+    "theme_color": "#0B0C15",
+    "icons": [
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
