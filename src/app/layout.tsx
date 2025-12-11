@@ -1,0 +1,40 @@
+import type { Metadata, Viewport } from "next";
+import { Nanum_Myeongjo } from "next/font/google";
+import "./globals.css";
+
+const nanumMyeongjo = Nanum_Myeongjo({
+  weight: ["400", "700", "800"],
+  subsets: ["latin"], // Note: Google Fonts might not explicitly list 'korean' in subsets type but it loads.
+  variable: "--font-serif",
+});
+
+export const metadata: Metadata = {
+  title: "GrowTalk - 품격 있는 대화",
+  description: "성장하는 사람들의 품격 있는 대화, GrowTalk",
+  overflow: "hidden", // Prevent scrolling outside mobile view
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ko">
+      <body
+        className={`${nanumMyeongjo.variable} font-sans antialiased bg-bg text-text-primary overflow-hidden`}
+      >
+        <div className="mx-auto max-w-[430px] h-[100dvh] bg-bg relative shadow-2xl overflow-hidden flex flex-col">
+          {children}
+        </div>
+      </body>
+    </html>
+  );
+}
