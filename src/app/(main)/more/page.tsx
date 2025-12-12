@@ -66,14 +66,18 @@ export default function MorePage() {
 
                 {/* Menu List */}
                 <div className="space-y-2">
-                    <button className="w-full flex items-center gap-3 p-4 bg-bg-paper/50 hover:bg-bg-paper rounded-2xl transition-colors text-left border border-white/5">
-                        <Info className="w-5 h-5 text-text-secondary" />
-                        <span className="text-text-primary">공지사항</span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 p-4 bg-bg-paper/50 hover:bg-bg-paper rounded-2xl transition-colors text-left border border-white/5">
-                        <Info className="w-5 h-5 text-text-secondary" />
-                        <span className="text-text-primary">도움말</span>
-                    </button>
+                    <Link href="/more/notices">
+                        <button className="w-full flex items-center gap-3 p-4 bg-bg-paper/50 hover:bg-bg-paper rounded-2xl transition-colors text-left border border-white/5">
+                            <Info className="w-5 h-5 text-text-secondary" />
+                            <span className="text-text-primary">공지사항</span>
+                        </button>
+                    </Link>
+                    <Link href="/more/help">
+                        <button className="w-full flex items-center gap-3 p-4 bg-bg-paper/50 hover:bg-bg-paper rounded-2xl transition-colors text-left border border-white/5">
+                            <Info className="w-5 h-5 text-text-secondary" />
+                            <span className="text-text-primary">도움말</span>
+                        </button>
+                    </Link>
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 p-4 bg-bg-paper/50 hover:bg-bg-paper rounded-2xl transition-colors text-left border border-white/5 text-red-400"
