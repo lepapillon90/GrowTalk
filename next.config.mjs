@@ -36,7 +36,7 @@ const withPWA = withPWAInit({
     // But next-pwa often causes issues in dev hot reload.
     // Let's set disable: process.env.NODE_ENV === "development" for stability, and assume user will build for test.
     // Or just set disable: false to verify now.
-    disable: true, // process.env.NODE_ENV === "development",
+    // disable: process.env.NODE_ENV === "development",
     workboxOptions: {
         disableDevLogs: true,
     },
