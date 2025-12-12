@@ -23,8 +23,6 @@ export default function MorePage() {
         router.replace("/login");
     };
 
-    if (!user) return null;
-
     return (
         <div className="pb-20">
             <TopNavigation
