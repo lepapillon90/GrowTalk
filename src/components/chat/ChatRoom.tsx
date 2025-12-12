@@ -156,6 +156,22 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    const handleDeleteMessage = async (messageId: string) => {
+        if (!user || !chatId) return;
+
+        try {
+            const messageRef = doc(db, "chats", chatId, "messages", messageId);
+            await updateDoc(messageRef, {
+                deletedAt: serverTimestamp(),
+                deletedBy: user.uid
+            });
+            toast.success("메시지가 삭제되었습니다");
+        } catch (error) {
+            console.error("Error deleting message:", error);
+            toast.error("메시지 삭제 실패");
+        }
+    };
+
     const updateTypingStatus = async (isTyping: boolean) => {
         if (!user || !chatId) return;
 
@@ -360,6 +376,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                                 unreadCount={unreadCount}
                                 status={messageStatus}
                                 showTime={showTime}
+                                onDelete={isMe ? () => handleDeleteMessage(msg.id) : undefined}
                             />
                         </div>
                     );

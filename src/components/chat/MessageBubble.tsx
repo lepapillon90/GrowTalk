@@ -13,6 +13,8 @@ interface MessageBubbleProps {
         createdAt: any; // Firestore Timestamp or Date
         type?: "text" | "image";
         imageUrl?: string;
+        deletedAt?: any; // Firestore Timestamp
+        deletedBy?: string;
     };
     isMe: boolean;
     showProfile?: boolean; // For group chats or receiver's first message
@@ -21,6 +23,7 @@ interface MessageBubbleProps {
     unreadCount?: number;
     status?: MessageStatus; // Message send status
     showTime?: boolean; // Whether to show timestamp
+    onDelete?: () => void; // Delete callback
 }
 
 export default function MessageBubble({
@@ -31,9 +34,11 @@ export default function MessageBubble({
     displayName,
     unreadCount = 0,
     status,
-    showTime = true
+    showTime = true,
+    onDelete
 }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
 
     // Format time (e.g., "오전 10:30")
     const formattedTime = message.createdAt?.toDate
@@ -108,10 +113,31 @@ export default function MessageBubble({
                             message.type === 'image' ? "p-0 bg-transparent" : "px-4 py-2.5",
                             isMe
                                 ? (message.type === 'image' ? "rounded-2xl" : "bg-brand-500 text-white rounded-l-2xl rounded-tr-sm rounded-br-2xl")
-                                : (message.type === 'image' ? "rounded-2xl" : "bg-bg-paper text-text-primary rounded-r-2xl rounded-tl-sm rounded-bl-2xl border border-white/5")
+                                : (message.type === 'image' ? "rounded-2xl" : "bg-bg-paper text-text-primary rounded-r-2xl rounded-tl-sm rounded-bl-2xl border border-white/5"),
+                            message.deletedAt && "opacity-60"
                         )}
+                        onContextMenu={(e) => {
+                            if (isMe && !message.deletedAt && onDelete) {
+                                e.preventDefault();
+                                setShowMenu(true);
+                            }
+                        }}
+                        onTouchStart={(e) => {
+                            if (isMe && !message.deletedAt && onDelete) {
+                                const timer = setTimeout(() => setShowMenu(true), 500);
+                                const cancel = () => {
+                                    clearTimeout(timer);
+                                    document.removeEventListener('touchend', cancel);
+                                    document.removeEventListener('touchmove', cancel);
+                                };
+                                document.addEventListener('touchend', cancel);
+                                document.addEventListener('touchmove', cancel);
+                            }
+                        }}
                     >
-                        {message.type === 'image' ? (
+                        {message.deletedAt ? (
+                            <span className="italic text-text-secondary/70">삭제된 메시지입니다</span>
+                        ) : message.type === 'image' ? (
                             <div className="relative max-w-[200px] rounded-2xl overflow-hidden border border-white/10">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
@@ -123,6 +149,27 @@ export default function MessageBubble({
                             </div>
                         ) : (
                             message.text
+                        )}
+
+                        {/* Delete Menu */}
+                        {showMenu && isMe && !message.deletedAt && onDelete && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowMenu(false)}
+                                />
+                                <div className="absolute bottom-full right-0 mb-2 bg-bg-paper border border-white/10 rounded-lg shadow-lg z-50 overflow-hidden">
+                                    <button
+                                        onClick={() => {
+                                            onDelete();
+                                            setShowMenu(false);
+                                        }}
+                                        className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 w-full text-left whitespace-nowrap"
+                                    >
+                                        메시지 삭제
+                                    </button>
+                                </div>
+                            </>
                         )}
                     </div>
 
