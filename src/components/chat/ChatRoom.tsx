@@ -15,6 +15,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage imports
 import { db, storage } from "@/lib/firebase"; // Storage instance
 import { useAuthStore } from "@/store/useAuthStore";
+import { compressImage } from "@/lib/imageUtils";
 import MessageBubble from "./MessageBubble";
 import { Send, Image as ImageIcon, Plus, X } from "lucide-react";
 import { toast } from "react-hot-toast"; // Assuming we install react-hot-toast, or build custom one. Let's build custom one or use simple alert for now if not installed? 
@@ -131,8 +132,16 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
             let imageUrl = "";
 
             if (imageFile) {
+                // Compress image (max 1200px for chat images)
+                let uploadFile = imageFile;
+                try {
+                    uploadFile = await compressImage(imageFile, 1200, 0.8);
+                } catch (err) {
+                    console.error("Image compression failed, using original:", err);
+                }
+
                 const storageRef = ref(storage, `chats/${chatId}/${Date.now()}_${imageFile.name}`);
-                const snapshot = await uploadBytes(storageRef, imageFile);
+                const snapshot = await uploadBytes(storageRef, uploadFile);
                 imageUrl = await getDownloadURL(snapshot.ref);
             }
 
