@@ -1,8 +1,6 @@
-"use client";
+import { Toaster } from "react-hot-toast";
 
-import { Toaster } from 'react-hot-toast';
-
-export default function ToasterProvider() {
+export default function CustomToaster() {
     return (
         <Toaster
             position="top-center"
