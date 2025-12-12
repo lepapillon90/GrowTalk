@@ -18,6 +18,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage 
 import { db, storage } from "@/lib/firebase"; // Storage instance
 import { useAuthStore } from "@/store/useAuthStore";
 import { compressImage } from "@/lib/imageUtils";
+import { isOnline, onNetworkChange } from "@/lib/networkUtils";
 import MessageBubble from "./MessageBubble";
 import DateSeparator from "./DateSeparator";
 import { Send, Image as ImageIcon, Plus, X } from "lucide-react";
@@ -45,6 +46,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const [pendingMessages, setPendingMessages] = useState<Map<string, 'sending' | 'sent' | 'failed'>>(new Map()); // Track message status
     const [typingUsers, setTypingUsers] = useState<string[]>([]); // Users currently typing
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [isNetworkOnline, setIsNetworkOnline] = useState(true);
 
     useEffect(() => {
         // Auto-focus input on mount
@@ -134,6 +136,22 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
         updateReadStatus();
     }, [chatId, user, messages.length]); // Trigget when new message arrives
 
+    // Monitor network status
+    useEffect(() => {
+        setIsNetworkOnline(isOnline());
+
+        const unsubscribe = onNetworkChange((online) => {
+            setIsNetworkOnline(online);
+            if (!online) {
+                toast.error("인터넷 연결이 끊어졌습니다");
+            } else {
+                toast.success("인터넷에 다시 연결되었습니다");
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -179,6 +197,12 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if ((!newMessage.trim() && !imageFile) || !user) return;
+
+        // Check network status
+        if (!isNetworkOnline) {
+            toast.error("인터넷 연결을 확인해주세요");
+            return;
+        }
 
         // Generate temporary ID for optimistic UI
         const tempId = `temp_${Date.now()}`;
@@ -283,6 +307,13 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                 I need to check [id]/page.tsx.
                 For now, let's just make sure MessageBubble gets the right name.
             */}
+
+            {/* Offline Banner */}
+            {!isNetworkOnline && (
+                <div className="bg-red-500/20 border-b border-red-500/30 px-4 py-2 text-center">
+                    <span className="text-sm text-red-400">⚠️ 인터넷 연결이 끊어졌습니다</span>
+                </div>
+            )}
 
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
