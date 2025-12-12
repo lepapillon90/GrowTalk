@@ -6,6 +6,7 @@ import TopNavigation from "@/components/layout/TopNavigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { User as UserIcon, Search, UserPlus, MessageCircle as MessageIcon } from "lucide-react"; // Renamed MessageCircle to prevent conflict
 import { useRouter } from "next/navigation";
+import { FriendListSkeleton } from "@/components/ui/Skeleton";
 import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -77,7 +78,14 @@ export default function FriendsPage() {
         }
     };
 
-    if (loading) return null; // Or skeleton
+    if (loading) return (
+        <div className="pb-20">
+            <TopNavigation title="친구" />
+            <div className="pt-16">
+                <FriendListSkeleton />
+            </div>
+        </div>
+    );
 
     if (!user) return null;
 

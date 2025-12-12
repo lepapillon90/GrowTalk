@@ -21,6 +21,7 @@ import { compressImage } from "@/lib/imageUtils";
 import { isOnline, onNetworkChange } from "@/lib/networkUtils";
 import MessageBubble from "./MessageBubble";
 import DateSeparator from "./DateSeparator";
+import { MessageListSkeleton } from "@/components/ui/Skeleton";
 import { Send, Image as ImageIcon, Plus, X } from "lucide-react";
 import { toast } from "react-hot-toast"; // Assuming we install react-hot-toast, or build custom one. Let's build custom one or use simple alert for now if not installed? 
 // Actually Plan said "Implement Toast". I will assume I need to build a simple Toast or use library. 
@@ -47,6 +48,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const [typingUsers, setTypingUsers] = useState<string[]>([]); // Users currently typing
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [isNetworkOnline, setIsNetworkOnline] = useState(true);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // Auto-focus input on mount
@@ -68,6 +70,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                 ...doc.data(),
             }));
             setMessages(msgs);
+            setLoading(false);
             setTimeout(scrollToBottom, 500); // Changed delay to 500
         });
 
@@ -333,54 +336,58 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
 
             {/* Message List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-                {messages.map((msg, index) => {
-                    const isMe = msg.senderId === user?.uid;
-                    const showProfile = !isMe && (index === 0 || messages[index - 1].senderId !== msg.senderId);
+                {loading ? (
+                    <MessageListSkeleton />
+                ) : (
+                    messages.map((msg, index) => {
+                        const isMe = msg.senderId === user?.uid;
+                        const showProfile = !isMe && (index === 0 || messages[index - 1].senderId !== msg.senderId);
 
-                    // Check if we need a date separator
-                    const currentDate = msg.createdAt?.toDate?.();
-                    const prevDate = index > 0 ? messages[index - 1].createdAt?.toDate?.() : null;
-                    const showDateSeparator = currentDate && (!prevDate ||
-                        currentDate.toDateString() !== prevDate.toDateString());
+                        // Check if we need a date separator
+                        const currentDate = msg.createdAt?.toDate?.();
+                        const prevDate = index > 0 ? messages[index - 1].createdAt?.toDate?.() : null;
+                        const showDateSeparator = currentDate && (!prevDate ||
+                            currentDate.toDateString() !== prevDate.toDateString());
 
-                    // Check if we should show time (show if different minute from next message or last message)
-                    const nextMsg = messages[index + 1];
-                    const showTime = !nextMsg ||
-                        nextMsg.senderId !== msg.senderId ||
-                        !nextMsg.createdAt?.toDate ||
-                        Math.abs(currentDate?.getTime() - nextMsg.createdAt.toDate().getTime()) > 60000; // 1 minute
+                        // Check if we should show time (show if different minute from next message or last message)
+                        const nextMsg = messages[index + 1];
+                        const showTime = !nextMsg ||
+                            nextMsg.senderId !== msg.senderId ||
+                            !nextMsg.createdAt?.toDate ||
+                            Math.abs(currentDate?.getTime() - nextMsg.createdAt.toDate().getTime()) > 60000; // 1 minute
 
-                    let unreadCount = 0;
-                    if (chatData && chatData.participants && chatData.lastRead) {
-                        const otherParticipants = chatData.participants.filter((uid: string) => uid !== user?.uid);
-                        otherParticipants.forEach((uid: string) => {
-                            const userReadTime = chatData.lastRead[uid];
-                            if (!userReadTime || (msg.createdAt && userReadTime < msg.createdAt)) {
-                                unreadCount++;
-                            }
-                        });
-                    }
+                        let unreadCount = 0;
+                        if (chatData && chatData.participants && chatData.lastRead) {
+                            const otherParticipants = chatData.participants.filter((uid: string) => uid !== user?.uid);
+                            otherParticipants.forEach((uid: string) => {
+                                const userReadTime = chatData.lastRead[uid];
+                                if (!userReadTime || (msg.createdAt && userReadTime < msg.createdAt)) {
+                                    unreadCount++;
+                                }
+                            });
+                        }
 
-                    const senderProfile = participantProfiles[msg.senderId];
-                    const messageStatus = pendingMessages.get(msg.id);
+                        const senderProfile = participantProfiles[msg.senderId];
+                        const messageStatus = pendingMessages.get(msg.id);
 
-                    return (
-                        <div key={msg.id}>
-                            {showDateSeparator && <DateSeparator date={currentDate} />}
-                            <MessageBubble
-                                message={msg}
-                                isMe={isMe}
-                                showProfile={showProfile}
-                                profileUrl={senderProfile?.photoURL}
-                                displayName={senderProfile?.displayName || "알 수 없음"}
-                                unreadCount={unreadCount}
-                                status={messageStatus}
-                                showTime={showTime}
-                                onDelete={isMe ? () => handleDeleteMessage(msg.id) : undefined}
-                            />
-                        </div>
-                    );
-                })}
+                        return (
+                            <div key={msg.id}>
+                                {showDateSeparator && <DateSeparator date={currentDate} />}
+                                <MessageBubble
+                                    message={msg}
+                                    isMe={isMe}
+                                    showProfile={showProfile}
+                                    profileUrl={senderProfile?.photoURL}
+                                    displayName={senderProfile?.displayName || "알 수 없음"}
+                                    unreadCount={unreadCount}
+                                    status={messageStatus}
+                                    showTime={showTime}
+                                    onDelete={isMe ? () => handleDeleteMessage(msg.id) : undefined}
+                                />
+                            </div>
+                        );
+                    })
+                )}
 
                 {/* Typing Indicator */}
                 {typingUsers.length > 0 && (

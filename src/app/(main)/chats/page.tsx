@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { MessageCircle, Search, PlusCircle, User } from "lucide-react";
 import Link from "next/link";
+import { ChatListSkeleton } from "@/components/ui/Skeleton";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -64,7 +65,7 @@ export default function ChatsPage() {
 
             <div className="pt-16 px-4 space-y-2 flex-1 overflow-y-auto scrollbar-hide">
                 {loading ? (
-                    <p className="text-center text-text-secondary mt-10">채팅 목록 불러오는 중...</p>
+                    <ChatListSkeleton />
                 ) : chats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[60vh] text-text-secondary">
                         <MessageCircle className="w-16 h-16 mb-4 opacity-20" />
