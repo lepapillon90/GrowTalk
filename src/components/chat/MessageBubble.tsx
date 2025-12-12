@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { User, Check, CheckCheck, Clock, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, memo } from "react";
 import SwipeableMessage from "@/components/ui/SwipeableMessage";
 
 type MessageStatus = 'sending' | 'sent' | 'failed';
@@ -28,7 +28,7 @@ interface MessageBubbleProps {
     onReply?: () => void; // Reply callback
 }
 
-export default function MessageBubble({
+function MessageBubble({
     message,
     isMe,
     showProfile = false,
@@ -183,3 +183,6 @@ export default function MessageBubble({
         </div>
     );
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default memo(MessageBubble);

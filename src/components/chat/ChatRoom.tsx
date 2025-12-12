@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
     collection,
     query,
@@ -159,7 +159,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    const handleDeleteMessage = async (messageId: string) => {
+    const handleDeleteMessage = useCallback(async (messageId: string) => {
         if (!user || !chatId) return;
 
         try {
@@ -173,7 +173,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
             console.error("Error deleting message:", error);
             toast.error("메시지 삭제 실패");
         }
-    };
+    }, [user, chatId]);
 
     const updateTypingStatus = async (isTyping: boolean) => {
         if (!user || !chatId) return;

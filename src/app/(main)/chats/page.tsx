@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { MessageCircle, Search, PlusCircle, User } from "lucide-react";
 import Link from "next/link";
