@@ -38,11 +38,15 @@ export default function MorePage() {
                 <Link href="/more/edit-profile">
                     <div className="bg-bg-paper rounded-2xl p-6 border border-white/5 flex items-center gap-4 active:scale-[0.98] transition-transform">
                         <div
-                            className="w-12 h-12 bg-bg rounded-xl flex items-center justify-center text-text-primary font-bold text-xl border border-white/10 overflow-hidden relative bg-cover bg-center"
-                            style={userProfile?.photoURL ? { backgroundImage: `url(${userProfile.photoURL})` } : undefined}
+                            className="w-12 h-12 bg-bg rounded-xl flex items-center justify-center text-text-primary font-bold text-xl border border-white/10 overflow-hidden relative"
+                            style={{
+                                backgroundImage: userProfile?.photoURL && !imageError ? `url(${userProfile.photoURL})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
+                            }}
                         >
-                            {/* Fallback Icon - Only shown if no photoURL */}
-                            {!userProfile?.photoURL && (
+                            {/* Fallback Icon - Only shown if no photoURL or error */}
+                            {(!userProfile?.photoURL || imageError) && (
                                 <User className="w-6 h-6 text-text-secondary" />
                             )}
                         </div>
