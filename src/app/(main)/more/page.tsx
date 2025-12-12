@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function MorePage() {
-    const { signOut, user, userProfile, loading } = useAuthStore();
+    const { signOut, user, userProfile } = useAuthStore();
     const router = useRouter();
     const [imageError, setImageError] = useState(false);
 

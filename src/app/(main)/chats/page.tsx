@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { MessageCircle, Search, PlusCircle, User } from "lucide-react";
 import Link from "next/link";
@@ -85,7 +85,15 @@ export default function ChatsPage() {
                                         {chat.name || "알 수 없는 대화방"}
                                     </h3>
                                     <span className="text-[10px] text-text-secondary">
-                                        {chat.updatedAt?.toDate ? format(chat.updatedAt.toDate(), "a h:mm") : ""}
+                                        {chat.updatedAt?.toDate ? (() => {
+                                            try {
+                                                return format(chat.updatedAt.toDate(), "a h:mm")
+                                                    .replace("AM", "오전")
+                                                    .replace("PM", "오후");
+                                            } catch {
+                                                return "";
+                                            }
+                                        })() : ""}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
