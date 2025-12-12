@@ -20,6 +20,7 @@ interface MessageBubbleProps {
     displayName?: string; // Receiver's name
     unreadCount?: number;
     status?: MessageStatus; // Message send status
+    showTime?: boolean; // Whether to show timestamp
 }
 
 export default function MessageBubble({
@@ -29,7 +30,8 @@ export default function MessageBubble({
     profileUrl,
     displayName,
     unreadCount = 0,
-    status
+    status,
+    showTime = true
 }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false);
 
@@ -87,7 +89,7 @@ export default function MessageBubble({
 
                 <div className="flex items-end gap-1.5">
                     {/* Time + Status (Left for Me) */}
-                    {isMe && (
+                    {isMe && showTime && (
                         <div className="flex flex-col items-end gap-0.5">
                             {unreadCount > 0 && (
                                 <span className="text-[10px] text-brand-500 font-bold">{unreadCount}</span>
@@ -125,7 +127,7 @@ export default function MessageBubble({
                     </div>
 
                     {/* Time (Right for Receiver) */}
-                    {!isMe && <span className="text-[10px] text-text-secondary min-w-fit mb-1">{formattedTime}</span>}
+                    {!isMe && showTime && <span className="text-[10px] text-text-secondary min-w-fit mb-1">{formattedTime}</span>}
                 </div>
             </div>
         </div>

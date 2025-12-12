@@ -19,6 +19,7 @@ import { db, storage } from "@/lib/firebase"; // Storage instance
 import { useAuthStore } from "@/store/useAuthStore";
 import { compressImage } from "@/lib/imageUtils";
 import MessageBubble from "./MessageBubble";
+import DateSeparator from "./DateSeparator";
 import { Send, Image as ImageIcon, Plus, X } from "lucide-react";
 import { toast } from "react-hot-toast"; // Assuming we install react-hot-toast, or build custom one. Let's build custom one or use simple alert for now if not installed? 
 // Actually Plan said "Implement Toast". I will assume I need to build a simple Toast or use library. 
@@ -289,6 +290,19 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                     const isMe = msg.senderId === user?.uid;
                     const showProfile = !isMe && (index === 0 || messages[index - 1].senderId !== msg.senderId);
 
+                    // Check if we need a date separator
+                    const currentDate = msg.createdAt?.toDate?.();
+                    const prevDate = index > 0 ? messages[index - 1].createdAt?.toDate?.() : null;
+                    const showDateSeparator = currentDate && (!prevDate ||
+                        currentDate.toDateString() !== prevDate.toDateString());
+
+                    // Check if we should show time (show if different minute from next message or last message)
+                    const nextMsg = messages[index + 1];
+                    const showTime = !nextMsg ||
+                        nextMsg.senderId !== msg.senderId ||
+                        !nextMsg.createdAt?.toDate ||
+                        Math.abs(currentDate?.getTime() - nextMsg.createdAt.toDate().getTime()) > 60000; // 1 minute
+
                     let unreadCount = 0;
                     if (chatData && chatData.participants && chatData.lastRead) {
                         const otherParticipants = chatData.participants.filter((uid: string) => uid !== user?.uid);
@@ -304,16 +318,19 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                     const messageStatus = pendingMessages.get(msg.id);
 
                     return (
-                        <MessageBubble
-                            key={msg.id}
-                            message={msg}
-                            isMe={isMe}
-                            showProfile={showProfile}
-                            profileUrl={senderProfile?.photoURL}
-                            displayName={senderProfile?.displayName || "알 수 없음"}
-                            unreadCount={unreadCount}
-                            status={messageStatus}
-                        />
+                        <div key={msg.id}>
+                            {showDateSeparator && <DateSeparator date={currentDate} />}
+                            <MessageBubble
+                                message={msg}
+                                isMe={isMe}
+                                showProfile={showProfile}
+                                profileUrl={senderProfile?.photoURL}
+                                displayName={senderProfile?.displayName || "알 수 없음"}
+                                unreadCount={unreadCount}
+                                status={messageStatus}
+                                showTime={showTime}
+                            />
+                        </div>
                     );
                 })}
 
