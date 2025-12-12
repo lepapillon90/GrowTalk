@@ -145,7 +145,7 @@ export default function FriendsPage() {
                         </div>
                     ) : friends.length === 0 ? (
                         <EmptyState
-                            icon={<UserIcon className="w-12 h-12" />}
+                            icon={UserIcon}
                             title="친구가 없습니다"
                             description="우측 상단의 + 버튼을 눌러 친구를 추가해보세요"
                         />

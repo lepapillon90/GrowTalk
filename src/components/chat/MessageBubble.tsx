@@ -2,6 +2,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { User, Check, CheckCheck, Clock, AlertCircle } from "lucide-react";
 import { useState, memo } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import SwipeableMessage from "@/components/ui/SwipeableMessage";
 
 type MessageStatus = 'sending' | 'sent' | 'failed';
@@ -75,10 +77,12 @@ function MessageBubble({
                     {showProfile && (
                         <div className="w-10 h-10 rounded-xl bg-bg-paper border border-white/5 overflow-hidden flex items-center justify-center">
                             {profileUrl && !imageError ? (
-                                <img
+                                <Image
                                     src={profileUrl}
                                     alt="Profile"
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
+                                    sizes="40px"
                                     onError={() => setImageError(true)}
                                 />
                             ) : (

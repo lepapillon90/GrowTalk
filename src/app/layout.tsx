@@ -4,6 +4,7 @@ import "./globals.css";
 import ToasterProvider from "@/components/providers/ToasterProvider";
 import FCMInitializer from "@/components/providers/FCMInitializer";
 import AuthProvider from "@/components/providers/AuthProvider";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 
 const nanumMyeongjo = Nanum_Myeongjo({
   weight: ["400", "700", "800"],
@@ -31,6 +32,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#0B0C15",
 };
 
 export default function RootLayout({

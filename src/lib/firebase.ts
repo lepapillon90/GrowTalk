@@ -19,6 +19,18 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+if (typeof window !== "undefined") {
+    import("firebase/firestore").then(({ enableIndexedDbPersistence }) => {
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn("Firestore persistence failed: Multiple tabs open.");
+            } else if (err.code == 'unimplemented') {
+                console.warn("Firestore persistence not supported in this browser.");
+            }
+        });
+    });
+}
+
 let messaging: any = null;
 
 if (typeof window !== "undefined") {

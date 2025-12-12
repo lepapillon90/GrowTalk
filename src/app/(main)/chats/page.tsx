@@ -14,6 +14,7 @@ import ChatSearchModal from "@/components/chat/ChatSearchModal";
 import CreateGroupModal from "@/components/chat/CreateGroupModal";
 import { useFriends } from "@/hooks/useFriends";
 import { useRouter } from "next/navigation";
+import VirtualChatList from "@/components/chat/VirtualChatList";
 
 
 export default function ChatsPage() {
@@ -83,9 +84,11 @@ export default function ChatsPage() {
                 }
             />
 
-            <div className="pt-16 px-4 space-y-2 flex-1 overflow-y-auto scrollbar-hide">
+            <div className="pt-16 px-4 space-y-2 flex-1 overflow-hidden">
                 {loading ? (
-                    <ChatListSkeleton />
+                    <div className="overflow-y-auto h-full scrollbar-hide">
+                        <ChatListSkeleton />
+                    </div>
                 ) : chats.length === 0 ? (
                     <EmptyState
                         icon={MessageCircle}
@@ -93,68 +96,7 @@ export default function ChatsPage() {
                         description="친구 탭에서 대화를 시작해보세요!"
                     />
                 ) : (
-                    chats.map((chat) => (
-                        <Link key={chat.id} href={`/chat/${chat.id}`} className="flex items-center gap-4 py-3 hover:bg-white/5 rounded-2xl transition-colors px-3 -mx-2 group">
-                            <div className="relative w-14 h-14 rounded-2xl bg-bg-paper border border-white/5 flex items-center justify-center overflow-hidden group-hover:border-brand-500/50 transition-colors">
-                                {chat.type === 'group' ? (
-                                    chat.groupImage ? (
-                                        <img src={chat.groupImage} alt={chat.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Users className="w-7 h-7 text-brand-500" />
-                                    )
-                                ) : (
-                                    <MessageCircle className="w-6 h-6 text-text-secondary/50" />
-                                )}
-                            </div>
-                            <div className="flex-1 min-w-0 conversation-preview">
-                                <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <h3 className="text-base font-bold text-text-primary truncate">
-                                            {chat.name || "알 수 없는 대화방"}
-                                        </h3>
-                                        {chat.type === 'group' && (
-                                            <span className="text-xs text-text-secondary flex-shrink-0">
-                                                {chat.participants?.length || 0}명
-                                            </span>
-                                        )}
-                                    </div>
-                                    <span className="text-[10px] text-text-secondary flex-shrink-0">
-                                        {chat.updatedAt?.toDate ? (() => {
-                                            try {
-                                                return format(chat.updatedAt.toDate(), "a h:mm")
-                                                    .replace("AM", "오전")
-                                                    .replace("PM", "오후");
-                                            } catch {
-                                                return "";
-                                            }
-                                        })() : ""}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-text-secondary truncate pr-4">
-                                        {chat.lastMessage || "대화가 없습니다."}
-                                    </p>
-                                    {/* Unread Badge Logic */}
-                                    {(() => {
-                                        if (!chat.updatedAt || !user) return null;
-
-                                        // If I haven't read it at all, or last read is before updated at
-                                        const myLastRead = chat.lastRead?.[user.uid];
-                                        const isUnread = !myLastRead || (chat.updatedAt?.toMillis?.() || 0) > (myLastRead?.toMillis?.() || 0);
-
-                                        if (isUnread) {
-                                            return (
-                                                <span className="bg-brand-500 text-bg text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[32px] text-center">
-                                                    New
-                                                </span>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-                                </div>
-                            </div>
-                        </Link>
-                    ))
+                    <VirtualChatList chats={chats} />
                 )}
             </div>
 
