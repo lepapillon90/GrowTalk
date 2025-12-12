@@ -77,8 +77,6 @@ export default function FriendsPage() {
         }
     };
 
-    if (loading) return null;
-
     if (!user) return null;
 
     return (
@@ -98,43 +96,47 @@ export default function FriendsPage() {
                 {/* My Profile */}
                 <div className="flex items-center gap-4 py-2">
                     <div
-                        className="relative w-16 h-16 rounded-2xl bg-bg-paper overflow-hidden border border-white/5 flex items-center justify-center bg-cover bg-center"
-                        style={user.photoURL ? { backgroundImage: `url(${user.photoURL})` } : undefined}
+                        className="w-14 h-14 rounded-2xl bg-bg-paper border border-white/5 overflow-hidden flex items-center justify-center"
+                        style={{
+                            backgroundImage: user.photoURL && !imageError ? `url(${user.photoURL})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                        }}
                     >
-                        {/* Fallback Icon - Only shown if no photoURL */}
-                        {!user.photoURL && (
-                            <UserIcon className="w-8 h-8 text-text-secondary" />
-                        )}
+                        {(!user.photoURL || imageError) && <UserIcon className="w-8 h-8 text-text-secondary/50" />}
                     </div>
                     <div className="flex-1">
-                        <h2 className="text-lg font-bold text-text-primary">{user.displayName || "이름 없음"}</h2>
-                        <p className="text-sm text-text-secondary line-clamp-1">{user.email}</p>
+                        <h3 className="text-base font-bold text-text-primary">{user.displayName || "사용자"}</h3>
+                        <p className="text-xs text-text-secondary">{userProfile?.statusMessage || "상태 메시지 없음"}</p>
                     </div>
                 </div>
 
-                <hr className="border-white/5" />
+                {/* Divider */}
+                <div className="border-t border-white/5"></div>
 
-                {/* Friend List (Mock with Action) */}
+                {/* Friends Section */}
                 <div>
-                    <p className="text-xs text-text-secondary mb-3">친구 {mockFriends.length}</p>
-                    <div className="space-y-4">
+                    <h4 className="text-sm font-bold text-text-secondary mb-3">친구 {mockFriends.length}</h4>
+                    <div className="space-y-2">
                         {mockFriends.map((friend) => (
-                            <div key={friend.uid} className="flex items-center gap-3 group cursor-pointer" onClick={() => startChat(friend.uid, friend.name)}>
-                                <div className="w-12 h-12 rounded-xl bg-bg-paper border border-white/5 flex items-center justify-center group-hover:border-brand-500/50 transition-colors">
+                            <div key={friend.uid} className="flex items-center gap-4 py-2 hover:bg-white/5 rounded-2xl transition-colors px-2 -mx-2 group">
+                                <div className="w-12 h-12 rounded-xl bg-bg-paper border border-white/5 flex items-center justify-center overflow-hidden group-hover:border-brand-500/50 transition-colors">
                                     <UserIcon className="w-6 h-6 text-text-secondary/50" />
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-base font-medium text-text-primary">{friend.name}</h3>
-                                    <p className="text-xs text-text-secondary">{friend.status}</p>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-sm font-bold text-text-primary truncate">{friend.name}</h3>
+                                    <p className="text-xs text-text-secondary truncate">{friend.status}</p>
                                 </div>
-                                <button className="p-2 text-text-secondary hover:text-brand-500 transition-colors">
-                                    <MessageIcon className="w-5 h-5" />
+                                <button
+                                    onClick={() => startChat(friend.uid, friend.name)}
+                                    className="p-2 hover:bg-brand-500/10 rounded-xl transition-colors"
+                                >
+                                    <MessageIcon className="w-5 h-5 text-brand-500" />
                                 </button>
                             </div>
                         ))}
                     </div>
                 </div>
-
             </div>
         </div>
     );
