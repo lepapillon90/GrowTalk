@@ -79,18 +79,13 @@ export default function FriendsPage() {
 
                 {/* My Profile */}
                 <div className="flex items-center gap-4 py-2">
-                    <div className="relative w-16 h-16 rounded-2xl bg-bg-paper overflow-hidden border border-white/5 flex items-center justify-center">
-                        {/* Fallback Icon - Always Visible */}
-                        <UserIcon className="w-8 h-8 text-text-secondary absolute" />
-                        {/* Image - Fades in on successful load */}
-                        {user.photoURL && !imageError && (
-                            <img
-                                src={user.photoURL}
-                                alt="Profile"
-                                className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-200"
-                                onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
-                                onError={() => setImageError(true)}
-                            />
+                    <div
+                        className="relative w-16 h-16 rounded-2xl bg-bg-paper overflow-hidden border border-white/5 flex items-center justify-center bg-cover bg-center"
+                        style={user.photoURL ? { backgroundImage: `url(${user.photoURL})` } : undefined}
+                    >
+                        {/* Fallback Icon - Only shown if no photoURL */}
+                        {!user.photoURL && (
+                            <UserIcon className="w-8 h-8 text-text-secondary" />
                         )}
                     </div>
                     <div className="flex-1">
