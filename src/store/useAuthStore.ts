@@ -9,6 +9,7 @@ export interface UserProfile {
     email: string;
     photoURL: string | null;
     statusMessage?: string;
+    customId?: string;
     createdAt?: string;
 }
 

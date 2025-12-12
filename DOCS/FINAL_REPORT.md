@@ -80,6 +80,23 @@
 
 ---
 
+## 🚧 빌드 및 긴급 수정 (2025-12-12 추가)
+
+### 1. 빌드 오류 해결 (Build Success)
+- **증상:** `npm run build` 실패 (WorkerError, Type Error)
+- **조치:**
+    - `ChatRoom.tsx`: 누락된 상태 변수(`typingTimeoutRef`, `pendingMessages` 등) 및 useEffect 로직 복구.
+    - `VirtualMessageList.tsx`, `VirtualChatList.tsx`: `react-window` 관련 타입 오류 수정.
+
+### 2. 안정성 확보를 위한 임시 조치
+빌드 안정성을 위해 다음 기능을 임시로 비활성화하거나 대체했습니다. 추후 호환성 검토 후 재활성화가 필요합니다.
+
+- **PWA (Offline Support):** `next-pwa` 플러그인이 빌드 과정에서 충돌을 일으켜 `next.config.mjs`에서 임시 비활성화했습니다.
+- **가상 스크롤링 (Virtual Scrolling):** `react-window` 라이브러리와 Next.js 빌드 간의 호환성 문제로 인해, `VirtualMessageList`와 `VirtualChatList`를 **일반 스크롤 리스트**로 대체했습니다. (기능은 정상 동작)
+
+---
+
+
 ## 🎨 주요 기능
 
 ### 1. 채팅 검색
@@ -239,12 +256,12 @@ friendRequests/{requestId}
 - 🌓 다크/라이트 모드 지원
 - 🌍 다국어 준비 (한/영)
 
-### 다음 단계 (선택사항)
-- [ ] 친구 요청 수락/거절 UI
+### 다음 단계 (우선순위)
+- [ ] **PWA 재활성화:** Next.js 16/React 19와 호환되는 PWA 설정 연구 및 적용
+- [ ] **가상 스크롤링 복구:** `react-window` 대신 `react-virtuoso` 등 최신 라이브러리 검토 및 적용
+- [ ] 친구 요청 수락/거절 UI 고도화
 - [ ] 실제 친구 목록 Firestore 연동
 - [ ] 그룹 채팅 기능 확장
-- [ ] PWA 오프라인 지원
-- [ ] 가상 스크롤링 (대량 데이터)
 
 ---
 

@@ -23,22 +23,31 @@ export default function AddFriendModal({
 
     const handleAddFriend = async () => {
         if (!email.trim()) {
-            toast.error("이메일을 입력해주세요");
+            toast.error("이메일 또는 아이디를 입력해주세요");
             return;
         }
 
         setIsLoading(true);
 
         try {
-            // 1. Find user by email
-            const usersQuery = query(
-                collection(db, "users"),
-                where("email", "==", email.trim())
-            );
+            // 1. Find user by email or customId
+            let usersQuery;
+            if (email.includes('@')) {
+                usersQuery = query(
+                    collection(db, "users"),
+                    where("email", "==", email.trim())
+                );
+            } else {
+                usersQuery = query(
+                    collection(db, "users"),
+                    where("customId", "==", email.trim())
+                );
+            }
+
             const usersSnapshot = await getDocs(usersQuery);
 
             if (usersSnapshot.empty) {
-                toast.error("해당 이메일의 사용자를 찾을 수 없습니다");
+                toast.error("사용자를 찾을 수 없습니다");
                 setIsLoading(false);
                 return;
             }
@@ -144,13 +153,13 @@ export default function AddFriendModal({
                         <div className="p-6 space-y-4">
                             <div>
                                 <label className="text-sm text-text-secondary mb-2 block">
-                                    이메일 주소
+                                    이메일 또는 아이디
                                 </label>
                                 <div className="flex items-center gap-3 bg-bg rounded-xl px-4 py-3 border border-white/5 focus-within:border-brand-500/50 transition-colors">
                                     <Mail className="w-5 h-5 text-text-secondary" />
                                     <input
-                                        type="email"
-                                        placeholder="friend@example.com"
+                                        type="text"
+                                        placeholder="이메일 주소 또는 ID 입력"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         onKeyPress={(e) => e.key === "Enter" && handleAddFriend()}
@@ -161,7 +170,7 @@ export default function AddFriendModal({
                             </div>
 
                             <p className="text-xs text-text-secondary">
-                                친구의 이메일 주소를 입력하면 친구 요청이 전송됩니다.
+                                친구의 이메일 또는 아이디를 입력하면 친구 요청이 전송됩니다.
                             </p>
                         </div>
 

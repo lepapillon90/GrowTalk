@@ -6,7 +6,7 @@ import { MessageCircle, Search, PlusCircle, User, Users } from "lucide-react";
 import Link from "next/link";
 import { ChatListSkeleton } from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import { format } from "date-fns";
@@ -24,15 +24,11 @@ export default function ChatsPage() {
     const [loading, setLoading] = useState(true);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+    const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({});
     const { friends } = useFriends(user?.uid);
 
     useEffect(() => {
         if (!user) return;
-
-        // Query chats where current user is a participant
-        // Note: Requires composite index if sorting by updatedAt. 
-        // For now, simple query. Or we can just list all chats for demo if we don't have participants array yet.
-        // Let's assume 'chats' collection has 'participants' array field containing uids.
 
         const q = query(
             collection(db, "chats"),
@@ -55,10 +51,47 @@ export default function ChatsPage() {
         return () => unsubscribe();
     }, [user]);
 
+    // Fetch profiles for participants
+    useEffect(() => {
+        if (!user || chats.length === 0) return;
+
+        const fetchProfiles = async () => {
+            const uidsToFetch = new Set<string>();
+            chats.forEach(chat => {
+                if (chat.participants) {
+                    chat.participants.forEach((uid: string) => {
+                        if (uid !== user.uid && !participantProfiles[uid]) {
+                            uidsToFetch.add(uid);
+                        }
+                    });
+                }
+            });
+
+            if (uidsToFetch.size === 0) return;
+
+            const newProfiles = { ...participantProfiles };
+            await Promise.all(Array.from(uidsToFetch).map(async (uid) => {
+                try {
+                    const docSnap = await getDoc(doc(db, "users", uid));
+                    if (docSnap.exists()) {
+                        newProfiles[uid] = docSnap.data();
+                    }
+                } catch (e) {
+                    console.error("Error fetching user", uid, e);
+                }
+            }));
+
+            // Only update if we actually fetched something new to avoid loops
+            if (Object.keys(newProfiles).length > Object.keys(participantProfiles).length) {
+                setParticipantProfiles(newProfiles);
+            }
+        };
+
+        fetchProfiles();
+    }, [chats, user, participantProfiles]);
+
     // Create Mock Chat for Demo if empty
     const createMockChat = async () => {
-        // This would be handled by a proper "New Chat" modal
-        // For now, let's just make sure we handle the empty state UI well.
         alert("새 채팅 시작하기 기능은 친구 목록에서 구현할 예정입니다.");
     };
 
@@ -96,7 +129,11 @@ export default function ChatsPage() {
                         description="친구 탭에서 대화를 시작해보세요!"
                     />
                 ) : (
-                    <VirtualChatList chats={chats} />
+                    <VirtualChatList
+                        chats={chats}
+                        currentUserId={user?.uid || ""}
+                        participantProfiles={participantProfiles}
+                    />
                 )}
             </div>
 

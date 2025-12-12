@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { messaging } from "@/lib/firebase";
 import { getToken } from "firebase/messaging";
-import { doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, setDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -37,10 +37,10 @@ export default function useFcmToken() {
                         setToken(currentToken);
                         // Save to Firestore
                         const userRef = doc(db, "users", user.uid);
-                        // We use arrayUnion to add without duplicates
-                        await updateDoc(userRef, {
+                        // We use arrayUnion to add without duplicates. safe with setDoc merge
+                        await setDoc(userRef, {
                             fcmTokens: arrayUnion(currentToken)
-                        });
+                        }, { merge: true });
                     }
                 }
             } catch (error) {

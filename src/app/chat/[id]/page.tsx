@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import ChatRoom from "@/components/chat/ChatRoom";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { Search, Menu, Users } from "lucide-react";
@@ -10,12 +10,13 @@ import { useAuthStore } from "@/store/useAuthStore";
 import GroupInfoModal from "@/components/chat/GroupInfoModal"; // Import
 
 interface ChatPageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
+    const { id } = use(params);
     const { user } = useAuthStore();
     const [title, setTitle] = useState<React.ReactNode>("로딩 중...");
     const [chatData, setChatData] = useState<any>(null); // State for modal
@@ -23,9 +24,9 @@ export default function ChatPage({ params }: ChatPageProps) {
     const [isInfoOpen, setIsInfoOpen] = useState(false); // Modal state
 
     useEffect(() => {
-        if (!user || !params.id) return;
+        if (!user || !id) return;
 
-        const unsubscribe = onSnapshot(doc(db, "chats", params.id), async (docSnap) => {
+        const unsubscribe = onSnapshot(doc(db, "chats", id), async (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setChatData(data); // Save data
@@ -80,7 +81,7 @@ export default function ChatPage({ params }: ChatPageProps) {
         });
 
         return () => unsubscribe();
-    }, [params.id, user]);
+    }, [id, user]);
 
     return (
         <div className="flex flex-col h-screen overflow-hidden bg-bg">
@@ -102,13 +103,17 @@ export default function ChatPage({ params }: ChatPageProps) {
                 }
             />
             <div className="flex-1 pt-14 pb-0 overflow-hidden">
-                <ChatRoom chatId={params.id} />
+                <ChatRoom
+                    chatId={id}
+                    chatData={chatData}
+                    participantProfiles={participantProfiles}
+                />
             </div>
 
             <GroupInfoModal
                 isOpen={isInfoOpen}
                 onClose={() => setIsInfoOpen(false)}
-                chatId={params.id}
+                chatId={id}
                 chatData={chatData}
                 currentUserId={user?.uid || ""}
                 participantProfiles={participantProfiles}

@@ -12,7 +12,10 @@ import {
     doc,
     getDoc,
     setDoc,
-    deleteDoc
+    deleteDoc,
+    limit,
+    startAfter,
+    getDocs
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage imports
 import { db, storage } from "@/lib/firebase"; // Storage instance
@@ -32,9 +35,11 @@ import { toast } from "react-hot-toast"; // Assuming we install react-hot-toast,
 
 interface ChatRoomProps {
     chatId: string;
+    chatData: any;
+    participantProfiles: Record<string, any>;
 }
 
-export default function ChatRoom({ chatId }: ChatRoomProps) {
+export default function ChatRoom({ chatId, chatData, participantProfiles }: ChatRoomProps) {
     const { user } = useAuthStore();
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState("");
@@ -48,18 +53,75 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
 
     const [isNetworkOnline, setIsNetworkOnline] = useState(true);
     const [pendingMessages, setPendingMessages] = useState<Map<string, string>>(new Map());
-    const [chatData, setChatData] = useState<any>(null);
-    const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({});
+    // const [chatData, setChatData] = useState<any>(null); // Lifted to parent
+    // const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({}); // Lifted to parent
     const [loading, setLoading] = useState(true);
 
-    // Network status effect
+    const [historyMessages, setHistoryMessages] = useState<any[]>([]);
+    const [liveMessages, setLiveMessages] = useState<any[]>([]);
+    const [optimisticMessages, setOptimisticMessages] = useState<any[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [hasMoreHistory, setHasMoreHistory] = useState(true);
+
+    // Combine and sort messages
+    useEffect(() => {
+        // De-duplicate by ID (Optimistic messages might overlap with live messages if listener is fast)
+        // Order: History -> Live -> Optimistic (Optimistic should be at end usually, but wait, sort by time)
+        const combined = [...historyMessages, ...liveMessages, ...optimisticMessages];
+        const uniqueMap = new Map();
+        combined.forEach(m => uniqueMap.set(m.id, m));
+        const unique = Array.from(uniqueMap.values());
+
+        // Sort ascending
+        unique.sort((a, b) => {
+            const timeA = a.createdAt?.seconds || Date.now() / 1000;
+            const timeB = b.createdAt?.seconds || Date.now() / 1000;
+            return timeA - timeB;
+        });
+        setMessages(unique);
+    }, [historyMessages, liveMessages, optimisticMessages]);
+
+    // ... (Network status effect remains same)
     useEffect(() => {
         setIsNetworkOnline(isOnline());
         const unsubscribe = onNetworkChange(setIsNetworkOnline);
         return () => unsubscribe();
     }, []);
 
-    // Fetch Chat Data & Participants
+    // ... (Fetch Live Messages effect remains same, not shown here for brevity of replacement if reusing Lines is hard, but I am replacing the block)
+    // Actually I should try to minimize replacement area.
+    // But `handleSendMessage` is large.
+
+    // ... (Fetch Live Messages lines 115-136)
+
+    // ... (markAsRead logic lines 138-177)
+    // The previous edit added markAsRead.
+
+    // Let's focus on `handleSendMessage` and the state definition.
+    // I will replace from state definitions up to handleSendMessage end.
+
+    /*
+       Wait, I need to be careful with maintaining `markAsRead` and `loadPreviousMessages` which are in between state defs and handleSendMessage.
+       The "Combine and sort messages" effect (lines 66-73) needs updating.
+       The state defs (lines 60-63) need updating.
+       The `handleSendMessage` (lines 282-362) needs updating.
+       
+       I will do this in 2 chunks.
+       Chunk 1: State + Effect
+       Chunk 2: handleSendMessage
+    */
+
+    /* Chunk 1 Replacement Content is not possible effectively because logic is separated. 
+       I will use MultiReplaceFileContent.
+    */
+
+    // Changing strategy to use MultiReplaceFileContent.
+
+
+
+
+    // Fetch Chat Data & Participants - REMOVED (Lifted to Parent)
+    /*
     useEffect(() => {
         if (!chatId) return;
 
@@ -70,8 +132,6 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
 
                 // Fetch participants if needed
                 if (data.participants && data.participants.length > 0) {
-                    // optimization: only fetch if not already in store or local state
-                    // For now, simpler implementation:
                     const profiles: Record<string, any> = {};
                     for (const uid of data.participants) {
                         try {
@@ -90,14 +150,17 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
 
         return () => unsubscribe();
     }, [chatId]);
+    */
 
-    // Fetch Messages
+    // Fetch Live Messages (Latest 20)
     useEffect(() => {
         if (!chatId) return;
 
+        // Listen to the latest 20 messages
         const q = query(
             collection(db, "chats", chatId, "messages"),
-            orderBy("createdAt", "asc")
+            orderBy("createdAt", "desc"),
+            limit(20)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -105,12 +168,93 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                 id: doc.id,
                 ...doc.data()
             }));
-            setMessages(msgs);
+            // snapshot is desc, so reverse to display ascending
+            setLiveMessages(msgs.reverse());
             setLoading(false);
         });
 
         return () => unsubscribe();
+        return () => unsubscribe();
     }, [chatId]);
+
+    // Throttled Read Receipt Update
+    const lastReadUpdateRef = useRef<NodeJS.Timeout | null>(null);
+
+    const markAsRead = useCallback(async () => {
+        if (!chatId || !user || !messages.length) return;
+
+        const latestMessage = messages[messages.length - 1];
+        if (!latestMessage) return;
+
+        // Optimization: Check against current prop data to avoid unnecessary writes
+        const myLastRead = chatData?.lastRead?.[user.uid];
+        if (myLastRead?.seconds && latestMessage.createdAt?.seconds && myLastRead.seconds >= latestMessage.createdAt.seconds) {
+            return;
+        }
+
+        // Throttle updates
+        if (lastReadUpdateRef.current) return;
+
+        lastReadUpdateRef.current = setTimeout(async () => {
+            try {
+                await updateDoc(doc(db, "chats", chatId), {
+                    [`lastRead.${user.uid}`]: serverTimestamp()
+                });
+            } catch (error) {
+                console.error("Error updating read status:", error);
+            } finally {
+                lastReadUpdateRef.current = null;
+            }
+        }, 2000);
+    }, [chatId, user, messages, chatData]);
+
+    // Trigger markAsRead when messages change or window is focused
+    useEffect(() => {
+        markAsRead();
+
+        // Optional: Add window focus listener
+        const handleFocus = () => markAsRead();
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [markAsRead]);
+
+    const loadPreviousMessages = async () => {
+        if (!chatId || !hasMoreHistory || isLoadingHistory) return;
+
+        // Find the oldest message currently loaded
+        const allMessages = [...historyMessages, ...liveMessages].sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        const oldestMessage = allMessages[0];
+
+        if (!oldestMessage) return;
+
+        setIsLoadingHistory(true);
+        try {
+            const q = query(
+                collection(db, "chats", chatId, "messages"),
+                orderBy("createdAt", "desc"),
+                startAfter(oldestMessage.createdAt), // Fetch older than this
+                limit(20)
+            );
+
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                setHasMoreHistory(false);
+            } else {
+                const msgs = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                // msgs is desc, reverse to asc
+                setHistoryMessages(prev => [...msgs.reverse(), ...prev]);
+            }
+        } catch (error) {
+            console.error("Error loading history:", error);
+            toast.error("이전 메시지 로딩 실패");
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
 
     // const scrollToBottom = () => {
     //    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -180,83 +324,90 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
             return;
         }
 
-        // Generate temporary ID for optimistic UI
-        const tempId = `temp_${Date.now()}`;
-        setIsUploading(true);
+        const messageId = doc(collection(db, "chats", chatId, "messages")).id;
+        const textContent = newMessage;
+        const fileToUpload = imageFile;
 
-        // Mark as sending
-        setPendingMessages(prev => new Map(prev).set(tempId, 'sending'));
+        // Clear UI immediately
+        setNewMessage("");
+        setImageFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        updateTypingStatus(false);
+
+        // Optimistic Message
+        const optimisticMsg = {
+            id: messageId,
+            text: textContent,
+            imageUrl: fileToUpload ? URL.createObjectURL(fileToUpload) : null,
+            senderId: user.uid,
+            createdAt: { seconds: Date.now() / 1000 },
+            type: fileToUpload ? "image" : "text",
+            status: 'sending'
+        };
+
+        setOptimisticMessages(prev => [...prev, optimisticMsg]);
 
         try {
-            let imageUrl = "";
+            let imageUrl = null;
 
-            if (imageFile) {
-                // Compress image (max 1200px for chat images)
-                let uploadFile = imageFile;
+            if (fileToUpload) {
                 try {
-                    uploadFile = await compressImage(imageFile, 1200, 0.8);
+                    // Compress image before upload
+                    const compressedFile = await compressImage(fileToUpload, 1200, 0.8);
+                    const storageRef = ref(storage, `chats/${chatId}/${Date.now()}_${fileToUpload.name}`);
+                    const snapshot = await uploadBytes(storageRef, compressedFile);
+                    imageUrl = await getDownloadURL(snapshot.ref);
                 } catch (err) {
-                    console.error("Image compression failed, using original:", err);
+                    console.error("Image upload failed:", err);
+                    throw new Error("Image upload failed");
                 }
-
-                const storageRef = ref(storage, `chats/${chatId}/${Date.now()}_${imageFile.name}`);
-                const snapshot = await uploadBytes(storageRef, uploadFile);
-                imageUrl = await getDownloadURL(snapshot.ref);
             }
 
-            // Batch writes or normal updates
             const messageData = {
-                text: newMessage,
+                text: textContent,
                 imageUrl: imageUrl || null,
                 senderId: user.uid,
                 createdAt: serverTimestamp(),
-                type: imageUrl ? "image" : "text",
+                type: fileToUpload ? "image" : "text",
             };
 
-            const docRef = await addDoc(collection(db, "chats", chatId, "messages"), messageData);
-
-            // Mark as sent
-            setPendingMessages(prev => {
-                const newMap = new Map(prev);
-                newMap.delete(tempId);
-                newMap.set(docRef.id, 'sent');
-                return newMap;
-            });
-
-            // Clear sent status after 2 seconds
-            setTimeout(() => {
-                setPendingMessages(prev => {
-                    const newMap = new Map(prev);
-                    newMap.delete(docRef.id);
-                    return newMap;
-                });
-            }, 2000);
+            await setDoc(doc(db, "chats", chatId, "messages", messageId), messageData);
 
             // Update Chat Last Message
             await updateDoc(doc(db, "chats", chatId), {
                 lastMessage: messageData.type === 'image' ? '사진' : messageData.text,
                 updatedAt: serverTimestamp(),
-                // Optimistically update my read status too
                 [`lastRead.${user.uid}`]: serverTimestamp()
             });
 
-            setNewMessage("");
-            setImageFile(null);
-            if (fileInputRef.current) fileInputRef.current.value = "";
-
-            // Clear typing status
-            updateTypingStatus(false);
+            // Remove from optimistic list (Live listener will pick it up)
+            setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
 
         } catch (error) {
             console.error("Error sending message:", error);
             toast.error("메시지 전송 실패");
-
-            // Mark as failed
-            setPendingMessages(prev => new Map(prev).set(tempId, 'failed'));
-        } finally {
-            setIsUploading(false);
+            // Mark as failed in optimistic list
+            setOptimisticMessages(prev => prev.map(m => m.id === messageId ? { ...m, status: 'failed' } : m));
         }
     };
+
+    const handleEditMessage = async (messageId: string, newText: string) => {
+        if (!chatId || !user) return;
+        try {
+            const messageRef = doc(db, "chats", chatId, "messages", messageId);
+            await updateDoc(messageRef, {
+                text: newText,
+                isEdited: true,
+                editedAt: serverTimestamp()
+            });
+            toast.success("메시지가 수정되었습니다");
+        } catch (error) {
+            console.error("Error editing message:", error);
+            toast.error("메시지 수정 실패");
+        }
+    };
+
+
 
     const getChatTitle = () => {
         if (!chatData) return "로딩 중...";
@@ -284,7 +435,11 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                 For now, let's just make sure MessageBubble gets the right name.
             */}
 
+            {/* Header - ... */}
+
             {/* Offline Banner */}
+
+
             {!isNetworkOnline && (
                 <div className="bg-red-500/20 border-b border-red-500/30 px-4 py-2 text-center">
                     <span className="text-sm text-red-400">⚠️ 인터넷 연결이 끊어졌습니다</span>
@@ -315,20 +470,36 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                     </div>
                 ) : (
                     /* Wrapper with padding? AutoSizer needs to fill 100% of this wrapper. */
-                    <div className="w-full h-full pl-4 pr-4 pt-4 pb-0">
-                        {/* Check if VirtualMessageList handles padding. 
+                    <div className="w-full h-full pl-4 pr-4 pt-4 pb-0 flex flex-col">
+                        {hasMoreHistory && (
+                            <button
+                                onClick={loadPreviousMessages}
+                                disabled={isLoadingHistory}
+                                className="w-full py-2 text-xs text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center shrink-0 mb-2"
+                            >
+                                {isLoadingHistory ? (
+                                    <span className="w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    "이전 메시지 더보기"
+                                )}
+                            </button>
+                        )}
+                        <div className="flex-1 min-h-0">
+                            {/* Check if VirtualMessageList handles padding. 
                             If VirtualMessageList is full size, the scrollbar will be at the edge.
                             If we want scrollbar at edge but content padded, we usually pad the Row.
                             But for now, let's put padding on container.
                          */}
-                        <VirtualMessageList
-                            messages={messages}
-                            currentUserId={user?.uid || ""}
-                            participantProfiles={participantProfiles}
-                            chatData={chatData}
-                            pendingMessages={pendingMessages}
-                            onDeleteMessage={handleDeleteMessage}
-                        />
+                            <VirtualMessageList
+                                messages={messages}
+                                currentUserId={user?.uid || ""}
+                                participantProfiles={participantProfiles}
+                                chatData={chatData}
+                                pendingMessages={pendingMessages}
+                                onDeleteMessage={handleDeleteMessage}
+                                onEditMessage={handleEditMessage}
+                            />
+                        </div>
                     </div>
                 )}
             </div>

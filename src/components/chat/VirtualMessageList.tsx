@@ -14,6 +14,7 @@ interface VirtualMessageListProps {
     chatData: any;
     pendingMessages: Map<string, any>;
     onDeleteMessage: (messageId: string) => void;
+    onEditMessage: (messageId: string, newText: string) => void;
 }
 
 // Data passed to the Row component
@@ -50,6 +51,7 @@ const Row = ({ index, style, data }: { index: number; style: React.CSSProperties
                         status={item.status}
                         showTime={item.showTime}
                         onDelete={item.onDelete}
+                        onEdit={item.onEdit}
                     />
                 )}
             </div>
@@ -63,7 +65,8 @@ export default function VirtualMessageList({
     participantProfiles,
     chatData,
     pendingMessages,
-    onDeleteMessage
+    onDeleteMessage,
+    onEditMessage
 }: VirtualMessageListProps) {
     const listRef = useRef<any>(null);
     const sizeMap = useRef<Record<number, number>>({});
@@ -117,12 +120,14 @@ export default function VirtualMessageList({
                 unreadCount,
                 status: messageStatus,
                 showTime,
-                onDelete: isMe ? () => onDeleteMessage(msg.id) : undefined
+                onDelete: isMe ? () => onDeleteMessage(msg.id) : undefined,
+                onEdit: isMe ? (newText: string) => onEditMessage(msg.id, newText) : undefined,
             });
         });
 
+
         return result;
-    }, [messages, currentUserId, participantProfiles, chatData, pendingMessages, onDeleteMessage]);
+    }, [messages, currentUserId, participantProfiles, chatData, pendingMessages, onDeleteMessage, onEditMessage]);
 
     const getItemSize = useCallback((index: number) => {
         return sizeMap.current[index] || 60; // Default estimate

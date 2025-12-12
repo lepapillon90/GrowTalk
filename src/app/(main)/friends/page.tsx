@@ -14,6 +14,7 @@ import FriendCard from "@/components/friends/FriendCard";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
 import { useFriends } from "@/hooks/useFriends";
 import EmptyState from "@/components/ui/EmptyState";
+import SetIdModal from "@/components/friends/SetIdModal";
 
 export default function FriendsPage() {
     const router = useRouter();
@@ -23,6 +24,16 @@ export default function FriendsPage() {
 
     const [imageError, setImageError] = useState(false);
     const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
+    const [isSetIdOpen, setIsSetIdOpen] = useState(false);
+    const { userProfile } = useAuthStore();
+
+    const handleAddFriendClick = () => {
+        if (!userProfile?.customId) {
+            setIsSetIdOpen(true);
+        } else {
+            setIsAddFriendOpen(true);
+        }
+    };
 
     useEffect(() => {
         setImageError(false);
@@ -84,7 +95,7 @@ export default function FriendsPage() {
                     <div className="flex items-center gap-4">
                         <button className="text-text-primary hover:text-text-accent transition-colors"><Search className="w-6 h-6" /></button>
                         <button
-                            onClick={() => setIsAddFriendOpen(true)}
+                            onClick={handleAddFriendClick}
                             className="text-text-primary hover:text-text-accent transition-colors"
                         >
                             <UserPlus className="w-6 h-6" />
@@ -168,6 +179,12 @@ export default function FriendsPage() {
                 isOpen={isAddFriendOpen}
                 onClose={() => setIsAddFriendOpen(false)}
                 currentUserUid={user?.uid || ""}
+            />
+            {/* Set ID Modal */}
+            <SetIdModal
+                isOpen={isSetIdOpen}
+                onClose={() => setIsSetIdOpen(false)}
+                onSuccess={() => setIsAddFriendOpen(true)}
             />
         </div>
     );
