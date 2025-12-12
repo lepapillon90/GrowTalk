@@ -28,7 +28,11 @@ export default function MorePage() {
             <TopNavigation
                 title="더보기"
                 rightAction={
-                    <button className="text-text-primary hover:text-text-accent transition-colors"><Settings className="w-6 h-6" /></button>
+                    <Link href="/more/settings">
+                        <button className="text-text-primary hover:text-text-accent transition-colors">
+                            <Settings className="w-6 h-6" />
+                        </button>
+                    </Link>
                 }
             />
 
