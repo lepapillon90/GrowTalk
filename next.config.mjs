@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     // output: 'export', // Reverted for Vercel
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
+    // eslint config is no longer supported in next.config.js in Next.js 15+
     typescript: {
         ignoreBuildErrors: true,
     },
@@ -20,6 +18,9 @@ const nextConfig = {
             },
         ],
     },
+    // Silence Turbopack warning when using Webpack plugins (next-pwa)
+    // See: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+    turbopack: {},
 };
 
 import withPWAInit from "@ducanh2912/next-pwa";
