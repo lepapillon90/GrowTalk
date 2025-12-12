@@ -162,7 +162,8 @@ export default function FriendsPage() {
                         />
                     ) : (
                         <div className="space-y-2">
-                            {friends.map((friend) => (
+                            {/* Deduplicate friends locally to prevent key errors */}
+                            {Array.from(new Map(friends.map(f => [f.uid, f])).values()).map((friend) => (
                                 <FriendCard
                                     key={friend.uid}
                                     friend={friend}

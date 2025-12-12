@@ -28,7 +28,7 @@ export function useFriends(userId: string | undefined) {
         );
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const friendsData: Friend[] = [];
+            const friendsMap = new Map<string, Friend>();
 
             for (const docSnap of snapshot.docs) {
                 const data = docSnap.data();
@@ -36,12 +36,12 @@ export function useFriends(userId: string | undefined) {
                 // 친구 UID 찾기 (나를 제외한 다른 사용자)
                 const friendUid = data.users.find((uid: string) => uid !== userId);
 
-                if (friendUid) {
+                if (friendUid && !friendsMap.has(friendUid)) {
                     // 친구 프로필 정보 가져오기
                     const friendDoc = await getDoc(doc(db, 'users', friendUid));
                     if (friendDoc.exists()) {
                         const friendData = friendDoc.data();
-                        friendsData.push({
+                        friendsMap.set(friendUid, {
                             uid: friendUid,
                             displayName: friendData.displayName || '사용자',
                             photoURL: friendData.photoURL || null,
@@ -52,7 +52,7 @@ export function useFriends(userId: string | undefined) {
                 }
             }
 
-            setFriends(friendsData);
+            setFriends(Array.from(friendsMap.values()));
             setLoading(false);
         });
 

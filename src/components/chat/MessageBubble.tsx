@@ -101,7 +101,7 @@ function MessageBubble({
             {!isMe && (
                 <div className="flex flex-col items-center mr-2 w-10">
                     {showProfile && (
-                        <div className="w-10 h-10 rounded-xl bg-bg-paper border border-white/5 overflow-hidden flex items-center justify-center">
+                        <div className="relative w-10 h-10 rounded-xl bg-bg-paper border border-white/5 overflow-hidden flex items-center justify-center">
                             {profileUrl && !imageError ? (
                                 <Image
                                     src={profileUrl}

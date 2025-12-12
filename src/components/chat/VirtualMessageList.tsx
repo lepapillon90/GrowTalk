@@ -3,7 +3,7 @@
 
 // import { VariableSizeList as List } from 'react-window';
 // import AutoSizer from 'react-virtualized-auto-sizer';
-import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import MessageBubble from './MessageBubble';
 import DateSeparator from './DateSeparator';
 
@@ -15,6 +15,9 @@ interface VirtualMessageListProps {
     pendingMessages: Map<string, any>;
     onDeleteMessage: (messageId: string) => void;
     onEditMessage: (messageId: string, newText: string) => void;
+    onLoadMore?: () => void;
+    hasMore?: boolean;
+    isLoading?: boolean;
 }
 
 // Data passed to the Row component
@@ -66,7 +69,10 @@ export default function VirtualMessageList({
     chatData,
     pendingMessages,
     onDeleteMessage,
-    onEditMessage
+    onEditMessage,
+    onLoadMore,
+    hasMore,
+    isLoading
 }: VirtualMessageListProps) {
     const listRef = useRef<any>(null);
     const sizeMap = useRef<Record<number, number>>({});
@@ -145,15 +151,98 @@ export default function VirtualMessageList({
         setSize
     }), [items, setSize]);
 
-    // Auto-scroll to bottom on new items
+    // Auto-scroll to bottom when new messages arrive (at the end)
+    const prevLastItemIdRef = useRef<string | null>(null);
+
     useEffect(() => {
-        if (items.length > 0 && listRef.current) {
-            listRef.current.scrollToItem(items.length - 1, "end");
+        const container = containerRef.current;
+        if (!container || !items.length) return;
+
+        const lastItem = items[items.length - 1];
+        const lastItemId = lastItem.id;
+        const isLastItemDifferent = lastItemId !== prevLastItemIdRef.current;
+
+        // If last item is new (Message sent or received, NOT history load which changes top)
+        if (isLastItemDifferent) {
+            // Optional: Check if user is near bottom or if it's my message
+            // For now, always scroll to bottom as per request "Chat doesn't scroll"
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         }
-    }, [items.length]);
+
+        prevLastItemIdRef.current = lastItemId;
+    }, [items]);
+
+    // Cleanup: Remove listRef if it's no longer used or keep it if I didn't remove definition
+    // I will just remove the old useEffect.
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const topSentinelRef = useRef<HTMLDivElement>(null);
+
+    // Scroll Retention Logic
+    const prevScrollHeightRef = useRef(0);
+    const prevFirstMsgIdRef = useRef<string | null>(null);
+
+    // Capture scroll height before update (via simple variable update in render or effect cleanup? No, useLayoutEffect runs after render)
+    // We need the snapshot FROM THE PREVIOUS render.
+    // We can use a ref that updates AFTER the adjustment.
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container || !messages.length) return;
+
+        const currentScrollHeight = container.scrollHeight;
+        const firstMsgId = messages[0]?.id;
+
+        // If we have a previous snapshot and the first message changed (prepended)
+        if (prevFirstMsgIdRef.current && firstMsgId !== prevFirstMsgIdRef.current && prevScrollHeightRef.current > 0) {
+            // Check if we are near the top (implying we were loading history)
+            // Actually, if we just loaded history, we definitely want to adjust.
+            const heightDiff = currentScrollHeight - prevScrollHeightRef.current;
+
+            // Adjust scroll position to maintain visual stability
+            // Only adjust if the diff is positive (content added)
+            if (heightDiff > 0) {
+                container.scrollTop = container.scrollTop + heightDiff;
+            }
+        }
+
+        // Update refs for next render
+        prevScrollHeightRef.current = currentScrollHeight;
+        prevFirstMsgIdRef.current = firstMsgId;
+    }, [messages, items]);
+
+    // Intersection Observer for Infinite Loading
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const first = entries[0];
+                if (first.isIntersecting && !isLoading && hasMore) {
+                    onLoadMore?.();
+                }
+            },
+            { threshold: 0.1, root: containerRef.current } // Observe relative to container
+        );
+
+        const currentSentinel = topSentinelRef.current;
+        if (currentSentinel) {
+            observer.observe(currentSentinel);
+        }
+
+        return () => {
+            if (currentSentinel) observer.unobserve(currentSentinel);
+        };
+    }, [isLoading, hasMore, onLoadMore]);
 
     return (
-        <div className="flex-1 w-full h-full overflow-y-auto p-4 space-y-4">
+        <div ref={containerRef} className="flex-1 w-full h-full overflow-y-auto p-4 space-y-4">
+
+            {/* Loading Spinner / Sentinel */}
+            <div ref={topSentinelRef} className="h-4 w-full flex items-center justify-center shrink-0">
+                {isLoading && (
+                    <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                )}
+            </div>
+
             {items.map((item, index) => (
                 <Row key={item.id + index} index={index} style={{}} data={{ items, setSize: () => { } }} />
             ))}

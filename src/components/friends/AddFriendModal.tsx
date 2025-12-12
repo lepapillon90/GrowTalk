@@ -98,13 +98,21 @@ export default function AddFriendModal({
             }
 
             // 2. Check if already friends
+            // Note: We check the root 'friends' collection where the document contains both UIDs.
+            // Since we can't query 'array-contains' twice, we query for the current user and filter.
             const friendsQuery = query(
-                collection(db, `users/${currentUserUid}/friends`),
-                where("uid", "==", searchedUser.uid)
+                collection(db, "friends"),
+                where("users", "array-contains", currentUserUid),
+                where("status", "==", "active")
             );
             const friendsSnapshot = await getDocs(friendsQuery);
 
-            if (!friendsSnapshot.empty) {
+            const isAlreadyFriend = friendsSnapshot.docs.some(doc => {
+                const data = doc.data();
+                return data.users.includes(searchedUser.uid);
+            });
+
+            if (isAlreadyFriend) {
                 toast.error("이미 친구입니다");
                 return;
             }

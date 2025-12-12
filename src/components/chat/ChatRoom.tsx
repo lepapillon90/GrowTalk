@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
     collection,
     query,
@@ -15,7 +15,8 @@ import {
     deleteDoc,
     limit,
     startAfter,
-    getDocs
+    getDocs,
+    endAt
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage imports
 import { db, storage } from "@/lib/firebase"; // Storage instance
@@ -41,141 +42,88 @@ interface ChatRoomProps {
 
 export default function ChatRoom({ chatId, chatData, participantProfiles }: ChatRoomProps) {
     const { user } = useAuthStore();
-    const [messages, setMessages] = useState<any[]>([]);
+    const [serverMessages, setServerMessages] = useState<any[]>([]);
+    const [optimisticMessages, setOptimisticMessages] = useState<any[]>([]);
+
+    const messages = useMemo(() => {
+        const combined = [...serverMessages, ...optimisticMessages];
+        const uniqueMap = new Map();
+        combined.forEach(m => uniqueMap.set(m.id, m));
+        return Array.from(uniqueMap.values()).sort((a, b) => {
+            const timeA = a.createdAt?.seconds || Date.now() / 1000;
+            const timeB = b.createdAt?.seconds || Date.now() / 1000;
+            return timeA - timeB;
+        });
+    }, [serverMessages, optimisticMessages]);
+
     const [newMessage, setNewMessage] = useState("");
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    // const messagesEndRef = useRef<HTMLDivElement>(null); // Removed unused ref
 
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const messageInputRef = useRef<HTMLInputElement>(null);
 
     const [isNetworkOnline, setIsNetworkOnline] = useState(true);
     const [pendingMessages, setPendingMessages] = useState<Map<string, string>>(new Map());
-    // const [chatData, setChatData] = useState<any>(null); // Lifted to parent
-    // const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({}); // Lifted to parent
     const [loading, setLoading] = useState(true);
 
-    const [historyMessages, setHistoryMessages] = useState<any[]>([]);
-    const [liveMessages, setLiveMessages] = useState<any[]>([]);
-    const [optimisticMessages, setOptimisticMessages] = useState<any[]>([]);
-    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [limitCount, setLimitCount] = useState(20);
+    const [oldestCursor, setOldestCursor] = useState<any>(null);
     const [hasMoreHistory, setHasMoreHistory] = useState(true);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-    // Combine and sort messages
-    useEffect(() => {
-        // De-duplicate by ID (Optimistic messages might overlap with live messages if listener is fast)
-        // Order: History -> Live -> Optimistic (Optimistic should be at end usually, but wait, sort by time)
-        const combined = [...historyMessages, ...liveMessages, ...optimisticMessages];
-        const uniqueMap = new Map();
-        combined.forEach(m => uniqueMap.set(m.id, m));
-        const unique = Array.from(uniqueMap.values());
-
-        // Sort ascending
-        unique.sort((a, b) => {
-            const timeA = a.createdAt?.seconds || Date.now() / 1000;
-            const timeB = b.createdAt?.seconds || Date.now() / 1000;
-            return timeA - timeB;
-        });
-        setMessages(unique);
-    }, [historyMessages, liveMessages, optimisticMessages]);
-
-    // ... (Network status effect remains same)
+    // Network status effect
     useEffect(() => {
         setIsNetworkOnline(isOnline());
         const unsubscribe = onNetworkChange(setIsNetworkOnline);
         return () => unsubscribe();
     }, []);
 
-    // ... (Fetch Live Messages effect remains same, not shown here for brevity of replacement if reusing Lines is hard, but I am replacing the block)
-    // Actually I should try to minimize replacement area.
-    // But `handleSendMessage` is large.
-
-    // ... (Fetch Live Messages lines 115-136)
-
-    // ... (markAsRead logic lines 138-177)
-    // The previous edit added markAsRead.
-
-    // Let's focus on `handleSendMessage` and the state definition.
-    // I will replace from state definitions up to handleSendMessage end.
-
-    /*
-       Wait, I need to be careful with maintaining `markAsRead` and `loadPreviousMessages` which are in between state defs and handleSendMessage.
-       The "Combine and sort messages" effect (lines 66-73) needs updating.
-       The state defs (lines 60-63) need updating.
-       The `handleSendMessage` (lines 282-362) needs updating.
-       
-       I will do this in 2 chunks.
-       Chunk 1: State + Effect
-       Chunk 2: handleSendMessage
-    */
-
-    /* Chunk 1 Replacement Content is not possible effectively because logic is separated. 
-       I will use MultiReplaceFileContent.
-    */
-
-    // Changing strategy to use MultiReplaceFileContent.
-
-
-
-
-    // Fetch Chat Data & Participants - REMOVED (Lifted to Parent)
-    /*
+    // Fetch Messages with Cursor-Based Pagination
     useEffect(() => {
         if (!chatId) return;
 
-        const unsubscribe = onSnapshot(doc(db, "chats", chatId), async (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setChatData(data);
-
-                // Fetch participants if needed
-                if (data.participants && data.participants.length > 0) {
-                    const profiles: Record<string, any> = {};
-                    for (const uid of data.participants) {
-                        try {
-                            const userDoc = await getDoc(doc(db, "users", uid));
-                            if (userDoc.exists()) {
-                                profiles[uid] = userDoc.data();
-                            }
-                        } catch (e) {
-                            console.error(`Error fetching user ${uid}`, e);
-                        }
-                    }
-                    setParticipantProfiles(profiles);
-                }
-            }
-        });
-
-        return () => unsubscribe();
-    }, [chatId]);
-    */
-
-    // Fetch Live Messages (Latest 20)
-    useEffect(() => {
-        if (!chatId) return;
-
-        // Listen to the latest 20 messages
-        const q = query(
-            collection(db, "chats", chatId, "messages"),
-            orderBy("createdAt", "desc"),
-            limit(20)
-        );
+        let q;
+        if (oldestCursor) {
+            q = query(
+                collection(db, "chats", chatId, "messages"),
+                orderBy("createdAt", "desc"),
+                endAt(oldestCursor)
+            );
+        } else {
+            q = query(
+                collection(db, "chats", chatId, "messages"),
+                orderBy("createdAt", "desc"),
+                limit(20)
+            );
+        }
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
-            // snapshot is desc, so reverse to display ascending
-            setLiveMessages(msgs.reverse());
+
+            // Initial load cursor setting: if we don't have a cursor yet, set it to the last message
+            if (!oldestCursor && msgs.length > 0) {
+                if (msgs.length >= 20) {
+                    setOldestCursor(snapshot.docs[snapshot.docs.length - 1]);
+                } else {
+                    setHasMoreHistory(false);
+                }
+            }
+
+            setServerMessages(msgs.reverse());
+            setLoading(false);
+            setIsLoadingHistory(false);
+        }, (error) => {
+            console.error("Snapshot error:", error);
             setLoading(false);
         });
 
         return () => unsubscribe();
-        return () => unsubscribe();
-    }, [chatId]);
+    }, [chatId, oldestCursor]);
 
     // Throttled Read Receipt Update
     const lastReadUpdateRef = useRef<NodeJS.Timeout | null>(null);
@@ -211,8 +159,6 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
     // Trigger markAsRead when messages change or window is focused
     useEffect(() => {
         markAsRead();
-
-        // Optional: Add window focus listener
         const handleFocus = () => markAsRead();
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
@@ -220,19 +166,14 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
     const loadPreviousMessages = async () => {
         if (!chatId || !hasMoreHistory || isLoadingHistory) return;
-
-        // Find the oldest message currently loaded
-        const allMessages = [...historyMessages, ...liveMessages].sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-        const oldestMessage = allMessages[0];
-
-        if (!oldestMessage) return;
+        if (!oldestCursor) return;
 
         setIsLoadingHistory(true);
         try {
             const q = query(
                 collection(db, "chats", chatId, "messages"),
                 orderBy("createdAt", "desc"),
-                startAfter(oldestMessage.createdAt), // Fetch older than this
+                startAfter(oldestCursor),
                 limit(20)
             );
 
@@ -240,18 +181,15 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
             if (snapshot.empty) {
                 setHasMoreHistory(false);
+                setIsLoadingHistory(false);
             } else {
-                const msgs = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                // msgs is desc, reverse to asc
-                setHistoryMessages(prev => [...msgs.reverse(), ...prev]);
+                const newOldest = snapshot.docs[snapshot.docs.length - 1];
+                setOldestCursor(newOldest);
+                // isLoadingHistory will be reset by the main snapshot listener update
             }
         } catch (error) {
             console.error("Error loading history:", error);
             toast.error("이전 메시지 로딩 실패");
-        } finally {
             setIsLoadingHistory(false);
         }
     };
@@ -471,19 +409,6 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
                 ) : (
                     /* Wrapper with padding? AutoSizer needs to fill 100% of this wrapper. */
                     <div className="w-full h-full pl-4 pr-4 pt-4 pb-0 flex flex-col">
-                        {hasMoreHistory && (
-                            <button
-                                onClick={loadPreviousMessages}
-                                disabled={isLoadingHistory}
-                                className="w-full py-2 text-xs text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center shrink-0 mb-2"
-                            >
-                                {isLoadingHistory ? (
-                                    <span className="w-4 h-4 border-2 border-text-secondary border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    "이전 메시지 더보기"
-                                )}
-                            </button>
-                        )}
                         <div className="flex-1 min-h-0">
                             {/* Check if VirtualMessageList handles padding. 
                             If VirtualMessageList is full size, the scrollbar will be at the edge.
@@ -498,6 +423,9 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
                                 pendingMessages={pendingMessages}
                                 onDeleteMessage={handleDeleteMessage}
                                 onEditMessage={handleEditMessage}
+                                onLoadMore={loadPreviousMessages}
+                                hasMore={hasMoreHistory}
+                                isLoading={isLoadingHistory}
                             />
                         </div>
                     </div>
@@ -505,20 +433,22 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
             </div>
 
             {/* Image Preview */}
-            {imageFile && (
-                <div className="px-4 py-2 bg-bg-paper border-t border-white/5 flex items-center gap-2">
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/10">
-                        <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full h-full object-cover" />
-                        <button
-                            onClick={() => { setImageFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                            className="absolute top-0 right-0 bg-black/50 text-white p-0.5"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
+            {
+                imageFile && (
+                    <div className="px-4 py-2 bg-bg-paper border-t border-white/5 flex items-center gap-2">
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/10">
+                            <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full h-full object-cover" />
+                            <button
+                                onClick={() => { setImageFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                                className="absolute top-0 right-0 bg-black/50 text-white p-0.5"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <span className="text-xs text-text-secondary">이미지 전송 대기중...</span>
                     </div>
-                    <span className="text-xs text-text-secondary">이미지 전송 대기중...</span>
-                </div>
-            )}
+                )
+            }
 
             {/* Input Area */}
             <div className="p-3 bg-bg-paper border-t border-white/5 safe-area-bottom">
@@ -566,6 +496,6 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
                     </button>
                 </form>
             </div>
-        </div>
+        </div >
     );
 }
