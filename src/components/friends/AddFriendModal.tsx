@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, UserPlus, Loader2, Mail } from "lucide-react";
+import { X, UserPlus, Loader2, Mail, Search, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -18,29 +18,31 @@ export default function AddFriendModal({
     onClose,
     currentUserUid,
 }: AddFriendModalProps) {
-    const [email, setEmail] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [searchedUser, setSearchedUser] = useState<any | null>(null);
 
-    const handleAddFriend = async () => {
-        if (!email.trim()) {
+    const handleSearch = async () => {
+        if (!searchTerm.trim()) {
             toast.error("이메일 또는 아이디를 입력해주세요");
             return;
         }
 
         setIsLoading(true);
+        setSearchedUser(null);
 
         try {
-            // 1. Find user by email or customId
+            // Find user by email or customId
             let usersQuery;
-            if (email.includes('@')) {
+            if (searchTerm.includes('@')) {
                 usersQuery = query(
                     collection(db, "users"),
-                    where("email", "==", email.trim())
+                    where("email", "==", searchTerm.trim())
                 );
             } else {
                 usersQuery = query(
                     collection(db, "users"),
-                    where("customId", "==", email.trim())
+                    where("customId", "==", searchTerm.trim().toLowerCase())
                 );
             }
 
@@ -52,64 +54,83 @@ export default function AddFriendModal({
                 return;
             }
 
-            const targetUser = usersSnapshot.docs[0];
-            const targetUid = targetUser.id;
+            const targetUserDoc = usersSnapshot.docs[0];
+            const targetUserData = targetUserDoc.data();
+            const targetUid = targetUserDoc.id;
 
-            // Check if trying to add self
+            // Check if trying to search self (Allow viewing but warn on adding later? Or just block?)
+            // UX: Block searching self for adding friend purpose
             if (targetUid === currentUserUid) {
-                toast.error("자기 자신을 친구로 추가할 수 없습니다");
+                toast.error("본인은 친구로 추가할 수 없습니다");
                 setIsLoading(false);
                 return;
             }
 
-            // 2. Check if friend request already exists
+            setSearchedUser({
+                uid: targetUid,
+                ...targetUserData
+            });
+
+        } catch (error) {
+            console.error("Error searching user:", error);
+            toast.error("사용자 검색 중 오류가 발생했습니다");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSendRequest = async () => {
+        if (!searchedUser) return;
+        setIsLoading(true);
+
+        try {
+            // 1. Check if friend request already exists
             const requestsQuery = query(
                 collection(db, "friendRequests"),
                 where("from", "==", currentUserUid),
-                where("to", "==", targetUid)
+                where("to", "==", searchedUser.uid)
             );
             const requestsSnapshot = await getDocs(requestsQuery);
 
             if (!requestsSnapshot.empty) {
                 toast.error("이미 친구 요청을 보냈습니다");
-                setIsLoading(false);
                 return;
             }
 
-            // 3. Check if already friends
+            // 2. Check if already friends
             const friendsQuery = query(
                 collection(db, `users/${currentUserUid}/friends`),
-                where("uid", "==", targetUid)
+                where("uid", "==", searchedUser.uid)
             );
             const friendsSnapshot = await getDocs(friendsQuery);
 
             if (!friendsSnapshot.empty) {
                 toast.error("이미 친구입니다");
-                setIsLoading(false);
                 return;
             }
 
-            // 4. Send friend request
+            // 3. Send friend request
             await addDoc(collection(db, "friendRequests"), {
                 from: currentUserUid,
-                to: targetUid,
+                to: searchedUser.uid,
                 status: "pending",
                 createdAt: serverTimestamp(),
             });
 
             toast.success("친구 요청을 보냈습니다");
-            setEmail("");
-            onClose();
+            handleClose();
+
         } catch (error) {
-            console.error("Error adding friend:", error);
-            toast.error("친구 추가 중 오류가 발생했습니다");
+            console.error("Error sending request:", error);
+            toast.error("요청 전송 실패");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleClose = () => {
-        setEmail("");
+        setSearchTerm("");
+        setSearchedUser(null);
         onClose();
     };
 
@@ -150,28 +171,68 @@ export default function AddFriendModal({
                         </div>
 
                         {/* Content */}
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-6">
+                            {/* Search Input */}
                             <div>
                                 <label className="text-sm text-text-secondary mb-2 block">
-                                    이메일 또는 아이디
+                                    친구 찾기
                                 </label>
-                                <div className="flex items-center gap-3 bg-bg rounded-xl px-4 py-3 border border-white/5 focus-within:border-brand-500/50 transition-colors">
-                                    <Mail className="w-5 h-5 text-text-secondary" />
-                                    <input
-                                        type="text"
-                                        placeholder="이메일 주소 또는 ID 입력"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        onKeyPress={(e) => e.key === "Enter" && handleAddFriend()}
-                                        className="flex-1 bg-transparent text-text-primary placeholder:text-text-secondary outline-none"
-                                        disabled={isLoading}
-                                    />
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 flex items-center gap-3 bg-bg rounded-xl px-4 py-3 border border-white/5 focus-within:border-brand-500/50 transition-colors">
+                                        <Search className="w-5 h-5 text-text-secondary" />
+                                        <input
+                                            type="text"
+                                            placeholder="이메일 또는 ID 입력"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                                            className="flex-1 bg-transparent text-text-primary placeholder:text-text-secondary outline-none"
+                                            disabled={isLoading}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleSearch}
+                                        disabled={isLoading || !searchTerm.trim()}
+                                        className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-primary transition-colors disabled:opacity-50"
+                                    >
+                                        <Search className="w-5 h-5" />
+                                    </button>
                                 </div>
                             </div>
 
-                            <p className="text-xs text-text-secondary">
-                                친구의 이메일 또는 아이디를 입력하면 친구 요청이 전송됩니다.
-                            </p>
+                            {/* User Preview */}
+                            {searchedUser && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-bg rounded-2xl p-4 flex items-center gap-4 border border-brand-500/20"
+                                >
+                                    <div
+                                        className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center overflow-hidden"
+                                        style={{
+                                            backgroundImage: searchedUser.photoURL ? `url(${searchedUser.photoURL})` : 'none',
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center'
+                                        }}
+                                    >
+                                        {!searchedUser.photoURL && <User className="w-6 h-6 text-text-secondary" />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-text-primary text-lg">
+                                            {searchedUser.displayName || "알 수 없는 사용자"}
+                                        </h4>
+                                        <p className="text-sm text-text-secondary">
+                                            {searchedUser.email}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {!searchedUser && (
+                                <p className="text-xs text-text-secondary text-center">
+                                    상대방의 이메일 주소 또는 ID를 입력하여 검색하세요.
+                                </p>
+                            )}
                         </div>
 
                         {/* Footer */}
@@ -184,14 +245,14 @@ export default function AddFriendModal({
                                 취소
                             </button>
                             <button
-                                onClick={handleAddFriend}
-                                disabled={isLoading || !email.trim()}
+                                onClick={handleSendRequest}
+                                disabled={isLoading || !searchedUser}
                                 className="flex-1 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>전송 중...</span>
+                                        <span>처리 중...</span>
                                     </>
                                 ) : (
                                     <>
