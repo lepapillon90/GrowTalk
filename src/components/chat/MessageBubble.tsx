@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { User, Check, CheckCheck, Clock, AlertCircle } from "lucide-react";
 import { useState } from "react";
+import SwipeableMessage from "@/components/ui/SwipeableMessage";
 
 type MessageStatus = 'sending' | 'sent' | 'failed';
 
@@ -24,6 +25,7 @@ interface MessageBubbleProps {
     status?: MessageStatus; // Message send status
     showTime?: boolean; // Whether to show timestamp
     onDelete?: () => void; // Delete callback
+    onReply?: () => void; // Reply callback
 }
 
 export default function MessageBubble({
@@ -35,7 +37,8 @@ export default function MessageBubble({
     unreadCount = 0,
     status,
     showTime = true,
-    onDelete
+    onDelete,
+    onReply
 }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
