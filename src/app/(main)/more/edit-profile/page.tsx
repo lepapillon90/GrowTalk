@@ -135,18 +135,18 @@ export default function ProfileEditPage() {
             <div className="pt-20 px-6 flex flex-col items-center gap-8">
                 {/* Profile Image */}
                 <div className="relative group">
-                    <div className="w-28 h-28 rounded-3xl bg-bg-paper border-2 border-white/5 overflow-hidden relative">
-                        {photoURL && !imageError ? (
+                    <div className="w-28 h-28 rounded-3xl bg-bg-paper border-2 border-white/5 overflow-hidden relative flex items-center justify-center">
+                        {/* Fallback Icon - Always Visible */}
+                        <User className="w-12 h-12 text-text-secondary/50 absolute" />
+                        {/* Image - Fades in on load */}
+                        {photoURL && !imageError && (
                             <img
                                 src={photoURL}
                                 alt="Profile"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-200"
+                                onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
                                 onError={() => setImageError(true)}
                             />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-bg-paper">
-                                <User className="w-12 h-12 text-text-secondary/50" />
-                            </div>
                         )}
 
                         {isUploading && (

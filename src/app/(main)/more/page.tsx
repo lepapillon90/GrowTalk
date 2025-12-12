@@ -38,15 +38,17 @@ export default function MorePage() {
                 <Link href="/more/edit-profile">
                     <div className="bg-bg-paper rounded-2xl p-6 border border-white/5 flex items-center gap-4 active:scale-[0.98] transition-transform">
                         <div className="w-12 h-12 bg-bg rounded-xl flex items-center justify-center text-text-primary font-bold text-xl border border-white/10 overflow-hidden relative">
-                            {userProfile?.photoURL && !imageError ? (
+                            {/* Fallback Icon - Always Visible as Base Layer */}
+                            <User className="w-6 h-6 text-text-secondary absolute" />
+                            {/* Image - Only shown after successful load */}
+                            {userProfile?.photoURL && !imageError && (
                                 <img
                                     src={userProfile.photoURL}
                                     alt="Profile"
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-200"
+                                    onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
                                     onError={() => setImageError(true)}
                                 />
-                            ) : (
-                                <User className="w-6 h-6 text-text-secondary" />
                             )}
                         </div>
                         <div className="flex-1">
