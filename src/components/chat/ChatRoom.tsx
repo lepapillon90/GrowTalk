@@ -10,7 +10,9 @@ import {
     serverTimestamp,
     updateDoc,
     doc,
-    getDoc
+    getDoc,
+    setDoc,
+    deleteDoc
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage imports
 import { db, storage } from "@/lib/firebase"; // Storage instance
@@ -40,6 +42,8 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const [chatData, setChatData] = useState<any>(null);
     const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({}); // Added participantProfiles state
     const [pendingMessages, setPendingMessages] = useState<Map<string, 'sending' | 'sent' | 'failed'>>(new Map()); // Track message status
+    const [typingUsers, setTypingUsers] = useState<string[]>([]); // Users currently typing
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         // Auto-focus input on mount
@@ -99,6 +103,22 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
         };
     }, [chatId, user]);
 
+    // Subscribe to typing indicators
+    useEffect(() => {
+        if (!chatId || !user) return;
+
+        const typingQuery = query(collection(db, "chats", chatId, "typing"));
+        const unsubscribe = onSnapshot(typingQuery, (snapshot) => {
+            const typing = snapshot.docs
+                .map(doc => ({ uid: doc.id, ...doc.data() }))
+                .filter((t: any) => t.uid !== user.uid && t.isTyping)
+                .map((t: any) => t.uid);
+            setTypingUsers(typing);
+        });
+
+        return () => unsubscribe();
+    }, [chatId, user]);
+
     // Separate effect to mark as read when messages change
     useEffect(() => {
         if (!chatId || !user || messages.length === 0) return;
@@ -115,6 +135,38 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    const updateTypingStatus = async (isTyping: boolean) => {
+        if (!user || !chatId) return;
+
+        const typingRef = doc(db, "chats", chatId, "typing", user.uid);
+
+        if (isTyping) {
+            await setDoc(typingRef, {
+                isTyping: true,
+                timestamp: serverTimestamp()
+            });
+        } else {
+            await deleteDoc(typingRef);
+        }
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNewMessage(e.target.value);
+
+        // Update typing status
+        updateTypingStatus(true);
+
+        // Clear existing timeout
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Set timeout to stop typing after 2 seconds of inactivity
+        typingTimeoutRef.current = setTimeout(() => {
+            updateTypingStatus(false);
+        }, 2000);
     };
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,6 +243,9 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
             setImageFile(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
 
+            // Clear typing status
+            updateTypingStatus(false);
+
         } catch (error) {
             console.error("Error sending message:", error);
             toast.error("메시지 전송 실패");
@@ -261,6 +316,24 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                         />
                     );
                 })}
+
+                {/* Typing Indicator */}
+                {typingUsers.length > 0 && (
+                    <div className="flex items-center gap-2 px-4 py-2">
+                        <div className="flex gap-1">
+                            <span className="w-2 h-2 bg-text-secondary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                            <span className="w-2 h-2 bg-text-secondary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                            <span className="w-2 h-2 bg-text-secondary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        </div>
+                        <span className="text-xs text-text-secondary">
+                            {typingUsers.length === 1
+                                ? `${participantProfiles[typingUsers[0]]?.displayName || '상대방'}이 입력 중...`
+                                : `${typingUsers.length}명이 입력 중...`
+                            }
+                        </span>
+                    </div>
+                )}
+
                 <div ref={messagesEndRef} />
             </div>
 
@@ -292,7 +365,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                             ref={messageInputRef}
                             type="text"
                             value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
+                            onChange={handleInputChange}
                             placeholder="메시지를 입력하세요..."
                             className="w-full bg-bg text-text-primary rounded-2xl px-4 py-2.5 pr-10 focus:outline-none border border-white/5 focus:border-brand-500/50 transition-colors"
                             disabled={isUploading}
