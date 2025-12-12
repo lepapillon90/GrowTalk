@@ -54,17 +54,18 @@ export default function SettingsPage() {
 
     return (
         <div className="pb-20">
-            <TopNavigation
-                title="설정"
-                leftAction={
+            <div className="fixed top-0 left-0 right-0 z-10 bg-bg-paper/80 backdrop-blur-xl border-b border-white/5 max-w-[430px] mx-auto">
+                <div className="flex items-center justify-between px-4 h-14">
                     <button
                         onClick={() => router.back()}
                         className="text-text-primary hover:text-text-accent transition-colors"
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
-                }
-            />
+                    <h1 className="text-lg font-bold text-text-primary">설정</h1>
+                    <div className="w-6" /> {/* Spacer */}
+                </div>
+            </div>
 
             <div className="pt-16 px-4 space-y-6">
                 {/* 알림 설정 */}
