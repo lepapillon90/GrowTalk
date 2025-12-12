@@ -129,15 +129,15 @@ export default function LandingPage() {
                   className="w-full px-8 py-4 bg-brand-500 hover:bg-brand-600 text-white text-lg font-bold rounded-2xl transition-all shadow-xl shadow-brand-500/30 flex items-center justify-center gap-2 hover:scale-105 animate-pulse"
                 >
                   <Download className="w-5 h-5" />
-                  앱 설치하고 시작하기
+                  앱 설치하고 시작하기(안드로이드)
                 </button>
               )}
 
               <Link
                 href={user ? "/friends" : "/login"}
                 className={`w-full px-8 py-4 text-white text-lg font-bold rounded-2xl transition-all flex items-center justify-center gap-2 hover:scale-105 ${deferredPrompt
-                    ? "bg-white/5 hover:bg-white/10 border border-white/10"
-                    : "bg-brand-500 hover:bg-brand-600 shadow-xl shadow-brand-500/30"
+                  ? "bg-white/5 hover:bg-white/10 border border-white/10"
+                  : "bg-brand-500 hover:bg-brand-600 shadow-xl shadow-brand-500/30"
                   }`}
               >
                 {user ? "웹으로 계속하기" : (deferredPrompt ? "웹으로 시작하기" : "무료로 시작하기")}
