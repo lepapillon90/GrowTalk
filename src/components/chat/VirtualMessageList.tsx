@@ -1,8 +1,8 @@
 "use client";
 
-// @ts-ignore
-import { VariableSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+
+// import { VariableSizeList as List } from 'react-window';
+// import AutoSizer from 'react-virtualized-auto-sizer';
 import { useRef, useEffect, useMemo, useCallback } from 'react';
 import MessageBubble from './MessageBubble';
 import DateSeparator from './DateSeparator';
@@ -148,22 +148,31 @@ export default function VirtualMessageList({
     }, [items.length]);
 
     return (
-        <div className="flex-1 w-full h-full">
-            <AutoSizer>
-                {({ height, width }: { height: number; width: number }) => (
-                    <List
-                        ref={listRef}
-                        height={height}
-                        width={width}
-                        itemCount={items.length}
-                        itemSize={getItemSize}
-                        itemData={itemData}
-                        className="scrollbar-hide"
-                    >
-                        {Row}
-                    </List>
-                )}
-            </AutoSizer>
+        <div className="flex-1 w-full h-full overflow-y-auto p-4 space-y-4">
+            {items.map((item, index) => (
+                <Row key={item.id + index} index={index} style={{}} data={{ items, setSize: () => { } }} />
+            ))}
         </div>
     );
+    /*
+        return (
+            <div className="flex-1 w-full h-full">
+                <AutoSizer>
+                    {({ height, width }: { height: number; width: number }) => (
+                        <List
+                            ref={listRef}
+                            height={height}
+                            width={width}
+                            itemCount={items.length}
+                            itemSize={getItemSize}
+                            itemData={itemData}
+                            className="scrollbar-hide"
+                        >
+                            {Row}
+                        </List>
+                    )}
+                </AutoSizer>
+            </div>
+        );
+    */
 }

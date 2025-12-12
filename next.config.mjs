@@ -41,4 +41,5 @@ const withPWA = withPWAInit({
     },
 });
 
-export default withPWA(nextConfig);
+// export default withPWA(nextConfig);
+export default nextConfig;

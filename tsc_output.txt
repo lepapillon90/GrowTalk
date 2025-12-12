@@ -1,0 +1,26 @@
+src/components/chat/ChatRoom.tsx(90,13): error TS2304: Cannot find name 'typingTimeoutRef'.
+src/components/chat/ChatRoom.tsx(91,26): error TS2304: Cannot find name 'typingTimeoutRef'.
+src/components/chat/ChatRoom.tsx(95,9): error TS2304: Cannot find name 'typingTimeoutRef'.
+src/components/chat/ChatRoom.tsx(111,14): error TS2304: Cannot find name 'isNetworkOnline'.
+src/components/chat/ChatRoom.tsx(121,9): error TS2304: Cannot find name 'setPendingMessages'.
+src/components/chat/ChatRoom.tsx(121,28): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/components/chat/ChatRoom.tsx(152,13): error TS2304: Cannot find name 'setPendingMessages'.
+src/components/chat/ChatRoom.tsx(152,32): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/components/chat/ChatRoom.tsx(161,17): error TS2304: Cannot find name 'setPendingMessages'.
+src/components/chat/ChatRoom.tsx(161,36): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/components/chat/ChatRoom.tsx(188,13): error TS2304: Cannot find name 'setPendingMessages'.
+src/components/chat/ChatRoom.tsx(188,32): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/components/chat/ChatRoom.tsx(195,14): error TS2304: Cannot find name 'chatData'.
+src/components/chat/ChatRoom.tsx(196,13): error TS2304: Cannot find name 'chatData'.
+src/components/chat/ChatRoom.tsx(196,30): error TS2304: Cannot find name 'chatData'.
+src/components/chat/ChatRoom.tsx(196,64): error TS2304: Cannot find name 'chatData'.
+src/components/chat/ChatRoom.tsx(200,24): error TS2304: Cannot find name 'chatData'.
+src/components/chat/ChatRoom.tsx(203,20): error TS2304: Cannot find name 'participantProfiles'.
+src/components/chat/ChatRoom.tsx(205,19): error TS2304: Cannot find name 'participantProfiles'.
+src/components/chat/ChatRoom.tsx(221,15): error TS2304: Cannot find name 'isNetworkOnline'.
+src/components/chat/ChatRoom.tsx(245,18): error TS2304: Cannot find name 'loading'.
+src/components/chat/ChatRoom.tsx(260,50): error TS2304: Cannot find name 'participantProfiles'.
+src/components/chat/ChatRoom.tsx(261,39): error TS2304: Cannot find name 'chatData'.
+src/components/chat/ChatRoom.tsx(262,46): error TS2304: Cannot find name 'pendingMessages'.
+src/components/chat/ChatRoom.tsx(294,34): error TS2304: Cannot find name 'messageInputRef'.
+src/components/chat/CreateGroupModal.tsx(10,30): error TS2307: Cannot find module 'browser-image-compression' or its corresponding type declarations.

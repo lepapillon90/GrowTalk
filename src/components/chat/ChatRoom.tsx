@@ -43,7 +43,74 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     // const messagesEndRef = useRef<HTMLDivElement>(null); // Removed unused ref
 
-    // ...
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const messageInputRef = useRef<HTMLInputElement>(null);
+
+    const [isNetworkOnline, setIsNetworkOnline] = useState(true);
+    const [pendingMessages, setPendingMessages] = useState<Map<string, string>>(new Map());
+    const [chatData, setChatData] = useState<any>(null);
+    const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({});
+    const [loading, setLoading] = useState(true);
+
+    // Network status effect
+    useEffect(() => {
+        setIsNetworkOnline(isOnline());
+        const unsubscribe = onNetworkChange(setIsNetworkOnline);
+        return () => unsubscribe();
+    }, []);
+
+    // Fetch Chat Data & Participants
+    useEffect(() => {
+        if (!chatId) return;
+
+        const unsubscribe = onSnapshot(doc(db, "chats", chatId), async (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setChatData(data);
+
+                // Fetch participants if needed
+                if (data.participants && data.participants.length > 0) {
+                    // optimization: only fetch if not already in store or local state
+                    // For now, simpler implementation:
+                    const profiles: Record<string, any> = {};
+                    for (const uid of data.participants) {
+                        try {
+                            const userDoc = await getDoc(doc(db, "users", uid));
+                            if (userDoc.exists()) {
+                                profiles[uid] = userDoc.data();
+                            }
+                        } catch (e) {
+                            console.error(`Error fetching user ${uid}`, e);
+                        }
+                    }
+                    setParticipantProfiles(profiles);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [chatId]);
+
+    // Fetch Messages
+    useEffect(() => {
+        if (!chatId) return;
+
+        const q = query(
+            collection(db, "chats", chatId, "messages"),
+            orderBy("createdAt", "asc")
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const msgs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setMessages(msgs);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [chatId]);
 
     // const scrollToBottom = () => {
     //    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

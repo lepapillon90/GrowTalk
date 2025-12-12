@@ -65,3 +65,9 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4A5568;
 }
+
+/* Next.js Portal Styles */
+nextjs-portal {
+  left: unset;
+  top: unset;
+}

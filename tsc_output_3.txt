@@ -1,0 +1,1 @@
+src/components/chat/VirtualMessageList.tsx(4,10): error TS2305: Module '"react-window"' has no exported member 'VariableSizeList'.

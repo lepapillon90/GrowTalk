@@ -1,8 +1,7 @@
 "use client";
 
-// @ts-ignore
-import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+// import { FixedSizeList as List } from 'react-window';
+// import AutoSizer from 'react-virtualized-auto-sizer';
 import Link from "next/link";
 import Image from "next/image";
 import { MessageCircle, Users } from "lucide-react";
@@ -113,20 +112,29 @@ export default function VirtualChatList({ chats }: VirtualChatListProps) {
     };
 
     return (
-        <div style={{ flex: 1, height: '100%' }}>
-            <AutoSizer>
-                {({ height, width }: { height: number; width: number }) => (
-                    <List
-                        height={height}
-                        itemCount={chats.length}
-                        itemSize={80}
-                        width={width}
-                        className="scrollbar-hide"
-                    >
-                        {Row}
-                    </List>
-                )}
-            </AutoSizer>
+        <div className="flex-1 overflow-y-auto" style={{ height: '100%' }}>
+            {chats.map((chat, index) => (
+                <Row key={chat.id || index} index={index} style={{}} />
+            ))}
         </div>
     );
+    /*
+        return (
+            <div style={{ flex: 1, height: '100%' }}>
+                <AutoSizer>
+                    {({ height, width }: { height: number; width: number }) => (
+                        <List
+                            height={height}
+                            itemCount={chats.length}
+                            itemSize={80}
+                            width={width}
+                            className="scrollbar-hide"
+                        >
+                            {Row}
+                        </List>
+                    )}
+                </AutoSizer>
+            </div>
+        );
+    */
 }
