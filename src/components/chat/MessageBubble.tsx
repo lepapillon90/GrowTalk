@@ -1,4 +1,4 @@
-// Imports (updated)
+
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { User, Check, CheckCheck, Clock, AlertCircle, Edit2, Trash2, X, Check as CheckIcon } from "lucide-react"; // Added icons
@@ -31,6 +31,7 @@ interface MessageBubbleProps {
     onDelete?: () => void; // Delete callback
     onEdit?: (newText: string) => void; // Edit callback
     onReply?: () => void; // Reply callback
+    isProfileLoaded?: boolean; // New prop to control loading state
 }
 
 function MessageBubble({
@@ -44,7 +45,8 @@ function MessageBubble({
     showTime = true,
     onDelete,
     onEdit,
-    onReply
+    onReply,
+    isProfileLoaded = true // Default true for backward compat or optimistic messages
 }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -65,6 +67,11 @@ function MessageBubble({
             editInputRef.current.focus();
         }
     }, [isEditing]);
+
+    // Reset image error if profileUrl changes
+    useEffect(() => {
+        setImageError(false);
+    }, [profileUrl]);
 
     const handleSaveEdit = () => {
         if (onEdit && editedText.trim() !== "" && editedText !== message.text) {
@@ -111,8 +118,12 @@ function MessageBubble({
                                     sizes="40px"
                                     onError={() => setImageError(true)}
                                 />
-                            ) : (
+                            ) : isProfileLoaded ? (
+                                // Only show default icon if profile IS loaded but has no image
                                 <User className="w-6 h-6 text-text-secondary/50" />
+                            ) : (
+                                // If not loaded, show nothing (transparent)
+                                null
                             )}
                         </div>
                     )}

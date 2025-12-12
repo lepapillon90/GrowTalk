@@ -23,6 +23,12 @@
 - 공지사항 페이지 (4개 공지)
 - 도움말 페이지 (10개 FAQ + 문의하기)
 
+**Phase 4: 기능 확장 및 최적화 (Latest)**
+- 친구 검색 페이지 고도화 (실시간 필터링)
+- 캘린더 및 일정 관리 (Schedules)
+- 채팅 기능 검증 및 최적화 (읽음 처리, 수정/삭제)
+- 번들 사이즈 분석 도구 도입
+
 ---
 
 ## 📁 생성된 파일 총계
@@ -44,6 +50,12 @@
 10. `src/components/info/FAQItem.tsx` - FAQ 아코디언
 11. `src/app/(main)/more/notices/page.tsx` - 공지사항 페이지
 12. `src/app/(main)/more/help/page.tsx` - 도움말 페이지
+
+### Phase 4 (확장)
+13. `src/app/(main)/friends/page.tsx` - 검색 UI 통합
+14. `src/app/(main)/more/schedules/page.tsx` - 일정 관리 페이지
+15. `src/components/schedule/CalendarView.tsx` - 캘린더 컴포넌트
+16. `src/models/schedule.ts` - 일정 타입 정의
 
 ### 이전 작업 (UI/UX, 성능, 버그)
 13. `src/components/ui/Skeleton.tsx` - 스켈레톤 로더
@@ -176,6 +188,12 @@ friendRequests/{requestId}
 - ✅ 공지사항 목록 표시
 - ✅ FAQ 아코디언 작동
 - ✅ 이메일 문의 링크
+
+### Phase 4
+- ✅ 친구 목록 검색 및 필터링
+- ✅ 캘린더 날짜별 색상 표시 (일-적, 토-청)
+- ✅ 일정 데이터 연동 (Firestore)
+- ✅ 번들 분석 (`npm run analyze`)
 
 ---
 

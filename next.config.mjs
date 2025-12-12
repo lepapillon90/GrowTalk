@@ -35,11 +35,23 @@ const withPWA = withPWAInit({
     // But next-pwa often causes issues in dev hot reload.
     // Let's set disable: process.env.NODE_ENV === "development" for stability, and assume user will build for test.
     // Or just set disable: false to verify now.
-    disable: process.env.NODE_ENV === "development",
+    disable: true, // process.env.NODE_ENV === "development",
     workboxOptions: {
         disableDevLogs: true,
     },
 });
 
 // export default withPWA(nextConfig);
-export default nextConfig;
+
+import withBundleAnalyzer from '@next/bundle-analyzer';
+
+const bundleAnalyzer = withBundleAnalyzer({
+    enabled: process.env.ANALYZE === 'true',
+    openAnalyzer: false,
+});
+
+const finalConfig = process.env.ANALYZE === 'true'
+    ? bundleAnalyzer(nextConfig)
+    : withPWA(nextConfig);
+
+export default finalConfig;

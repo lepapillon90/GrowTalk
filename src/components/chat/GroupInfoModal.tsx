@@ -126,7 +126,7 @@ export default function GroupInfoModal({
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm font-medium text-text-primary truncate">
-                                                            {profile?.displayName || "알 수 없음"}
+                                                            {profile?.displayName || null}
                                                         </span>
                                                         {uid === currentUserId && (
                                                             <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-text-secondary">나</span>

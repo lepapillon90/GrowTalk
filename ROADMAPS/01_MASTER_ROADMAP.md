@@ -97,7 +97,13 @@
 
 - [x] **5.3. User Management**
     - Profile Editing (Photo, Status Update)
-    - Friend Search by Email (Implemented flow via New Chat)
+    - Friend Search & Filtering (Dedicated Page UI)
+    - Schedule Management (Calendar View)
+
+- [x] **5.4. Performance Optimization**
+    - Bundle Size Analysis
+    - Chat Message Pagination (`limit`, `startAfter`)
+    - Image Lazy Loading
 
 ---
 

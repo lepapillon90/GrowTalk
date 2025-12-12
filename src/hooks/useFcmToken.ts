@@ -33,7 +33,7 @@ export default function useFcmToken() {
                     });
 
                     if (currentToken) {
-                        console.log("FCM Token:", currentToken);
+
                         setToken(currentToken);
                         // Save to Firestore
                         const userRef = doc(db, "users", user.uid);

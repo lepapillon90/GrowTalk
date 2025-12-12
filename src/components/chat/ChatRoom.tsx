@@ -16,23 +16,18 @@ import {
     limit,
     startAfter,
     getDocs,
-    endAt
+    endAt,
+    increment
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage imports
 import { db, storage } from "@/lib/firebase"; // Storage instance
 import { useAuthStore } from "@/store/useAuthStore";
 import { compressImage } from "@/lib/imageUtils";
 import { isOnline, onNetworkChange } from "@/lib/networkUtils";
-import MessageBubble from "./MessageBubble";
-import DateSeparator from "./DateSeparator";
 import VirtualMessageList from "./VirtualMessageList";
 import { MessageListSkeleton } from "@/components/ui/Skeleton";
 import { Send, Image as ImageIcon, Plus, X } from "lucide-react";
-import { toast } from "react-hot-toast"; // Assuming we install react-hot-toast, or build custom one. Let's build custom one or use simple alert for now if not installed? 
-// Actually Plan said "Implement Toast". I will assume I need to build a simple Toast or use library. 
-// Let's stick to simple alert for error/success for now or better, use the one I am about to create.
-// Since I haven't created Toast.tsx yet in this turn (I just ran New-Item), I will update this file to use a simple state-based toast or just confirm logic.
-// Let's implement the logic first.
+import { toast } from "react-hot-toast";
 
 interface ChatRoomProps {
     chatId: string;
@@ -102,7 +97,7 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data()
+                ...doc.data({ serverTimestamps: 'estimate' })
             }));
 
             // Initial load cursor setting: if we don't have a cursor yet, set it to the last message
@@ -145,9 +140,10 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
         lastReadUpdateRef.current = setTimeout(async () => {
             try {
-                await updateDoc(doc(db, "chats", chatId), {
-                    [`lastRead.${user.uid}`]: serverTimestamp()
-                });
+                await setDoc(doc(db, "chats", chatId), {
+                    lastRead: { [user.uid]: serverTimestamp() },
+                    unreadCounts: { [user.uid]: 0 }
+                }, { merge: true });
             } catch (error) {
                 console.error("Error updating read status:", error);
             } finally {
@@ -158,11 +154,25 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
     // Trigger markAsRead when messages change or window is focused
     useEffect(() => {
+        // Immediate check on mount/message update
+        if (chatId && user && messages.length) {
+            const latestMessage = messages[messages.length - 1];
+            const myLastRead = chatData?.lastRead?.[user.uid];
+
+            // If definitely unread, update immediately without throttle
+            if (latestMessage.createdAt?.seconds && (!myLastRead?.seconds || myLastRead.seconds < latestMessage.createdAt.seconds)) {
+                setDoc(doc(db, "chats", chatId), {
+                    lastRead: { [user.uid]: serverTimestamp() },
+                    unreadCounts: { [user.uid]: 0 }
+                }, { merge: true }).catch(err => console.error("Immediate read update failed", err));
+            }
+        }
+
         markAsRead();
         const handleFocus = () => markAsRead();
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
-    }, [markAsRead]);
+    }, [markAsRead, chatId, user, messages, chatData]);
 
     const loadPreviousMessages = async () => {
         if (!chatId || !hasMoreHistory || isLoadingHistory) return;
@@ -194,9 +204,6 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
         }
     };
 
-    // const scrollToBottom = () => {
-    //    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    // };
 
     const handleDeleteMessage = useCallback(async (messageId: string) => {
         if (!user || !chatId) return;
@@ -278,7 +285,10 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
             text: textContent,
             imageUrl: fileToUpload ? URL.createObjectURL(fileToUpload) : null,
             senderId: user.uid,
-            createdAt: { seconds: Date.now() / 1000 },
+            createdAt: {
+                seconds: Date.now() / 1000,
+                toDate: () => new Date()
+            },
             type: fileToUpload ? "image" : "text",
             status: 'sending'
         };
@@ -311,12 +321,33 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
             await setDoc(doc(db, "chats", chatId, "messages", messageId), messageData);
 
-            // Update Chat Last Message
-            await updateDoc(doc(db, "chats", chatId), {
+            // Update Chat Last Message and Unread Counts
+            // Update Chat Last Message and Unread Counts
+            // Use setDoc with merge and NESTED OBJECTS (not dot notation) to ensure correct structure
+            const unreadUpdates: Record<string, any> = {
+                [user.uid]: 0 // Reset my count
+            };
+
+            // Increment unread count for other participants
+            if (chatData?.participants) {
+                chatData.participants.forEach((uid: string) => {
+                    if (uid !== user.uid) {
+                        unreadUpdates[uid] = increment(1);
+                    }
+                });
+            }
+
+            const updates = {
                 lastMessage: messageData.type === 'image' ? '사진' : messageData.text,
+                lastMessageSenderId: user.uid,
                 updatedAt: serverTimestamp(),
-                [`lastRead.${user.uid}`]: serverTimestamp()
-            });
+                lastRead: {
+                    [user.uid]: serverTimestamp()
+                },
+                unreadCounts: unreadUpdates
+            };
+
+            await setDoc(doc(db, "chats", chatId), updates, { merge: true });
 
             // Remove from optimistic list (Live listener will pick it up)
             setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
@@ -345,39 +376,8 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
         }
     };
 
-
-
-    const getChatTitle = () => {
-        if (!chatData) return "로딩 중...";
-        if (chatData.name && chatData.type === 'group') return chatData.name;
-
-        // Dynamic title for 1:1 or if no name
-        // Filter out me
-        const others = chatData.participants?.filter((uid: string) => uid !== user?.uid) || [];
-        if (others.length === 0) return "나와의 채팅";
-        if (others.length === 1) {
-            return participantProfiles[others[0]]?.displayName || "알 수 없는 사용자";
-        }
-        return `${participantProfiles[others[0]]?.displayName || "?"} 외 ${others.length - 1}명`;
-    };
-
     return (
         <div className="flex flex-col h-full bg-bg">
-            {/* Header - We likely need to render TopNavigation OUTSIDE ChatRoom if ChatRoom is just content... 
-                But based on previous logs, ChatPage does NOT render ChatRoom. 
-                Wait, /src/app/(main)/chats/[id]/page.tsx is likely where ChatRoom is used.
-                Let's assume ChatRoom handles full page layout OR creates its own Header?
-                Actually looking at ChatRoom.tsx, it creates "flex flex-col h-full".
-                It DOES NOT currently render TopNavigation. TopNavigation is probably in the PARENT [id]/page.tsx.
-                I need to check [id]/page.tsx.
-                For now, let's just make sure MessageBubble gets the right name.
-            */}
-
-            {/* Header - ... */}
-
-            {/* Offline Banner */}
-
-
             {!isNetworkOnline && (
                 <div className="bg-red-500/20 border-b border-red-500/30 px-4 py-2 text-center">
                     <span className="text-sm text-red-400">⚠️ 인터넷 연결이 끊어졌습니다</span>
@@ -386,35 +386,13 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
             {/* Message List */}
             <div className="flex-1 overflow-hidden p-0 relative">
-                {/* Remove padding from container because VirtualList handles it or inner div handles it. 
-                    VirtualMessageList takes full width/height.
-                    Wait, VirtualMessageList returns <div className="flex-1 w-full h-full"> <AutoSizer> ...
-                    So we need parent to be flex-1 and overflow-hidden.
-                    Previous code: <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-                    We should remove p-4 space-y-4 from container and let VirtualList rows have padding?
-                    VirtualMessageList `Row` has `div style={style}`. 
-                    If we want padding around the list, we can put it on the container, but AutoSizer might miscalculate width if padding is on parent?
-                    AutoSizer uses offsetWidth/Height. Padding on parent reduces content box size if box-sizing border-box.
-                    Let's keep p-0 on parent and add padding in Item or just assume full width.
-                    The design had p-4.
-                    Let's update VirtualMessageList to include p-4?
-                    Or just put VirtualMessageList inside a p-4 div?
-                    If we put it inside p-4, AutoSizer will detect smaller width/height.
-                    Let's try:
-                 */}
                 {loading ? (
                     <div className="p-4 space-y-4 h-full overflow-y-auto scrollbar-hide">
                         <MessageListSkeleton />
                     </div>
                 ) : (
-                    /* Wrapper with padding? AutoSizer needs to fill 100% of this wrapper. */
                     <div className="w-full h-full pl-4 pr-4 pt-4 pb-0 flex flex-col">
                         <div className="flex-1 min-h-0">
-                            {/* Check if VirtualMessageList handles padding. 
-                            If VirtualMessageList is full size, the scrollbar will be at the edge.
-                            If we want scrollbar at edge but content padded, we usually pad the Row.
-                            But for now, let's put padding on container.
-                         */}
                             <VirtualMessageList
                                 messages={messages}
                                 currentUserId={user?.uid || ""}

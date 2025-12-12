@@ -1,18 +1,67 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 1, 11);
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isChatParticipant(chatId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/chats/$(chatId)) &&
+             (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+    }
+    
+    // 1. Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated(); // Authenticated users can read profiles
+      allow write: if isOwner(userId);  // Only owner can update their profile
+      
+      // Schedules Subcollection (Private)
+      match /schedules/{scheduleId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // 2. Friend Requests
+    match /friendRequests/{requestId} {
+      // Sender can create
+      allow create: if isAuthenticated() && request.resource.data.from == request.auth.uid;
+      // Sender and Receiver can read
+      allow read: if isAuthenticated() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      // Receiver can update (accept/reject)
+      allow update: if isAuthenticated() && resource.data.to == request.auth.uid;
+      // Sender or Receiver can delete
+      allow delete: if isAuthenticated() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+
+    // 3. Chats Collection
+    match /chats/{chatId} {
+      // Create: Allow if user is in participants list
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+      // Read/Update: Start with simple participant check. 
+      // Note: 'resource' refers to the existing document.
+      allow read, update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+
+      // Messages Subcollection
+      match /messages/{messageId} {
+         allow read: if isChatParticipant(chatId);
+         allow create: if isChatParticipant(chatId) && 
+                       request.resource.data.senderId == request.auth.uid &&
+                       // Validation
+                       request.resource.data.text.size() < 5000 &&
+                       (request.resource.data.type == 'text' || request.resource.data.type == 'image');
+         allow update: if isChatParticipant(chatId) && resource.data.senderId == request.auth.uid; // Edit own message
+         // Soft delete is an update, hard delete might be restricted?
+         // Current app uses soft delete (update). 
+         allow delete: if false; // Prefer soft delete
+      }
     }
   }
 }

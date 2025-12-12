@@ -1,8 +1,5 @@
 "use client";
 
-
-// import { VariableSizeList as List } from 'react-window';
-// import AutoSizer from 'react-virtualized-auto-sizer';
 import { useRef, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import MessageBubble from './MessageBubble';
 import DateSeparator from './DateSeparator';
@@ -43,13 +40,20 @@ const Row = ({ index, style, data }: { index: number; style: React.CSSProperties
             <div ref={rowRef}>
                 {item.type === 'date' ? (
                     <DateSeparator date={item.date} />
+                ) : item.type === 'separator' ? (
+                    <div id="unread_separator" className="w-full flex items-center justify-center my-4 opacity-80">
+                        <div className="bg-brand-500/10 text-brand-400 text-xs px-3 py-1 rounded-full border border-brand-500/20 backdrop-blur-sm shadow-sm flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+                            여기까지 읽었습니다
+                        </div>
+                    </div>
                 ) : (
                     <MessageBubble
                         message={item.message}
                         isMe={item.isMe}
                         showProfile={item.showProfile}
                         profileUrl={item.profileUrl}
-                        displayName={item.displayName || "알 수 없음"}
+                        displayName={item.displayName || undefined} // Removed "알 수 없음"
                         unreadCount={item.unreadCount}
                         status={item.status}
                         showTime={item.showTime}
@@ -80,8 +84,19 @@ export default function VirtualMessageList({
     // Flatten attributes into items
     const items = useMemo(() => {
         const result: any[] = [];
+        let separatorAdded = false;
+
+        const myLastRead = chatData?.lastRead?.[currentUserId];
 
         messages.forEach((msg, index) => {
+            // Check for unread separator
+            if (!separatorAdded && myLastRead && msg.createdAt?.seconds && myLastRead.seconds < msg.createdAt.seconds) {
+                if (msg.senderId !== currentUserId) {
+                    result.push({ type: 'separator', id: 'unread_separator' });
+                    separatorAdded = true;
+                }
+            }
+
             // Logic duplicated from ChatRoom for consistency
             const currentDate = msg.createdAt?.toDate?.();
             const prevDate = index > 0 ? messages[index - 1].createdAt?.toDate?.() : null;
@@ -122,7 +137,8 @@ export default function VirtualMessageList({
                 isMe,
                 showProfile,
                 profileUrl: senderProfile?.photoURL,
-                displayName: senderProfile?.displayName,
+                isProfileLoaded: !!senderProfile && !!senderProfile.displayName, // Stricter check
+                displayName: senderProfile?.displayName || null, // Ensure explicit null if missing
                 unreadCount,
                 status: messageStatus,
                 showTime,
@@ -130,7 +146,6 @@ export default function VirtualMessageList({
                 onEdit: isMe ? (newText: string) => onEditMessage(msg.id, newText) : undefined,
             });
         });
-
 
         return result;
     }, [messages, currentUserId, participantProfiles, chatData, pendingMessages, onDeleteMessage, onEditMessage]);
@@ -151,29 +166,58 @@ export default function VirtualMessageList({
         setSize
     }), [items, setSize]);
 
-    // Auto-scroll to bottom when new messages arrive (at the end)
+    // Auto-scroll logic
     const prevLastItemIdRef = useRef<string | null>(null);
+    const hasScrolledToUnreadRef = useRef(false);
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container || !items.length) return;
 
+        // Check for unread separator
+        const unreadSeparatorIndex = items.findIndex(item => item.type === 'separator');
+
+        if (unreadSeparatorIndex !== -1 && !hasScrolledToUnreadRef.current) {
+            // Found separator and haven't handled initial scroll yet
+            const separatorElement = document.getElementById('unread_separator');
+            if (separatorElement) {
+                separatorElement.scrollIntoView({ block: 'center', behavior: 'auto' });
+                // Add a small offset? block center is usually fine.
+                hasScrolledToUnreadRef.current = true;
+                return; // Skip bottom scroll
+            }
+        }
+
+        // Normal bottom scroll logic
         const lastItem = items[items.length - 1];
         const lastItemId = lastItem.id;
         const isLastItemDifferent = lastItemId !== prevLastItemIdRef.current;
 
-        // If last item is new (Message sent or received, NOT history load which changes top)
         if (isLastItemDifferent) {
-            // Optional: Check if user is near bottom or if it's my message
-            // For now, always scroll to bottom as per request "Chat doesn't scroll"
-            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            if (!hasScrolledToUnreadRef.current && unreadSeparatorIndex !== -1) {
+                // Waiting for separator to render?
+            } else {
+                if (!hasScrolledToUnreadRef.current) {
+                    // Initial load without separator -> Bottom
+                    container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+                    hasScrolledToUnreadRef.current = true; // Mark initial scroll done
+                } else {
+                    // Subsequent updates (new messages) -> Smooth scroll
+                    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                }
+            }
         }
 
         prevLastItemIdRef.current = lastItemId;
     }, [items]);
 
-    // Cleanup: Remove listRef if it's no longer used or keep it if I didn't remove definition
-    // I will just remove the old useEffect.
+    // Reset unread scroll flag when chat changes
+    useEffect(() => {
+        if (messages.length === 0) {
+            hasScrolledToUnreadRef.current = false;
+        }
+    }, [messages.length]);
+
 
     const containerRef = useRef<HTMLDivElement>(null);
     const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -181,10 +225,6 @@ export default function VirtualMessageList({
     // Scroll Retention Logic
     const prevScrollHeightRef = useRef(0);
     const prevFirstMsgIdRef = useRef<string | null>(null);
-
-    // Capture scroll height before update (via simple variable update in render or effect cleanup? No, useLayoutEffect runs after render)
-    // We need the snapshot FROM THE PREVIOUS render.
-    // We can use a ref that updates AFTER the adjustment.
 
     useLayoutEffect(() => {
         const container = containerRef.current;
@@ -195,12 +235,7 @@ export default function VirtualMessageList({
 
         // If we have a previous snapshot and the first message changed (prepended)
         if (prevFirstMsgIdRef.current && firstMsgId !== prevFirstMsgIdRef.current && prevScrollHeightRef.current > 0) {
-            // Check if we are near the top (implying we were loading history)
-            // Actually, if we just loaded history, we definitely want to adjust.
             const heightDiff = currentScrollHeight - prevScrollHeightRef.current;
-
-            // Adjust scroll position to maintain visual stability
-            // Only adjust if the diff is positive (content added)
             if (heightDiff > 0) {
                 container.scrollTop = container.scrollTop + heightDiff;
             }
@@ -244,29 +279,8 @@ export default function VirtualMessageList({
             </div>
 
             {items.map((item, index) => (
-                <Row key={item.id + index} index={index} style={{}} data={{ items, setSize: () => { } }} />
+                <Row key={item.id} index={index} style={{}} data={{ items, setSize: () => { } }} />
             ))}
         </div>
     );
-    /*
-        return (
-            <div className="flex-1 w-full h-full">
-                <AutoSizer>
-                    {({ height, width }: { height: number; width: number }) => (
-                        <List
-                            ref={listRef}
-                            height={height}
-                            width={width}
-                            itemCount={items.length}
-                            itemSize={getItemSize}
-                            itemData={itemData}
-                            className="scrollbar-hide"
-                        >
-                            {Row}
-                        </List>
-                    )}
-                </AutoSizer>
-            </div>
-        );
-    */
 }

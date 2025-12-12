@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 interface TopNavigationProps {
     title: React.ReactNode;
     hasBack?: boolean;
+    backUrl?: string; // New prop
     rightAction?: React.ReactNode;
     transparent?: boolean;
 }
@@ -12,6 +13,7 @@ interface TopNavigationProps {
 export default function TopNavigation({
     title,
     hasBack = false,
+    backUrl, // Destructure
     rightAction,
     transparent = false,
 }: TopNavigationProps) {
@@ -24,7 +26,7 @@ export default function TopNavigation({
         >
             <div className="flex items-center gap-3">
                 {hasBack && (
-                    <Link href=".." className="text-text-primary p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
+                    <Link href={backUrl || ".."} className="text-text-primary p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
                 )}

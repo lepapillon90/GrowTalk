@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import TopNavigation from "@/components/layout/TopNavigation";
 import { MessageCircle, Search, PlusCircle, User, Users } from "lucide-react";
 import Link from "next/link";
-import { ChatListSkeleton } from "@/components/ui/Skeleton";
+
 import EmptyState from "@/components/ui/EmptyState";
 import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -42,7 +42,12 @@ export default function ChatsPage() {
                 ...doc.data()
             }));
             setChats(chatList);
-            setLoading(false);
+
+            // Should not stop loading here if we have chats, 
+            // wait for profiles to load in the other useEffect
+            if (chatList.length === 0) {
+                setLoading(false);
+            }
         }, (error) => {
             console.error("Error fetching chats:", error);
             setLoading(false);
@@ -67,7 +72,11 @@ export default function ChatsPage() {
                 }
             });
 
-            if (uidsToFetch.size === 0) return;
+            if (uidsToFetch.size === 0) {
+                // If we have chats and no new profiles to fetch, we are ready
+                setLoading(false);
+                return;
+            }
 
             const newProfiles = { ...participantProfiles };
             await Promise.all(Array.from(uidsToFetch).map(async (uid) => {
@@ -85,15 +94,15 @@ export default function ChatsPage() {
             if (Object.keys(newProfiles).length > Object.keys(participantProfiles).length) {
                 setParticipantProfiles(newProfiles);
             }
+
+            // Profiles loaded (or attempted), ready to show
+            setLoading(false);
         };
 
         fetchProfiles();
     }, [chats, user, participantProfiles]);
 
-    // Create Mock Chat for Demo if empty
-    const createMockChat = async () => {
-        alert("새 채팅 시작하기 기능은 친구 목록에서 구현할 예정입니다.");
-    };
+
 
     return (
         <div className="pb-20 h-full flex flex-col">
@@ -118,11 +127,7 @@ export default function ChatsPage() {
             />
 
             <div className="pt-16 px-4 space-y-2 flex-1 overflow-hidden">
-                {loading ? (
-                    <div className="overflow-y-auto h-full scrollbar-hide">
-                        <ChatListSkeleton />
-                    </div>
-                ) : chats.length === 0 ? (
+                {loading ? null : chats.length === 0 ? (
                     <EmptyState
                         icon={MessageCircle}
                         title="대화방이 없습니다"

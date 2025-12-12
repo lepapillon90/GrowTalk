@@ -99,7 +99,7 @@ export default function ProfileEditPage() {
                 try {
                     const oldRef = ref(storage, oldPhotoURL);
                     await deleteObject(oldRef);
-                    console.log("Old profile image deleted.");
+
                 } catch (err) {
                     console.error("Failed to delete old image:", err);
                     // We don't block the UI for this background cleanup error

@@ -12,7 +12,7 @@ export function measureRenderTime(componentName: string, callback: () => void): 
     const renderTime = endTime - startTime;
 
     if (process.env.NODE_ENV === 'development') {
-        console.log(`[Performance] ${componentName} rendered in ${renderTime.toFixed(2)}ms`);
+
     }
 }
 
@@ -21,13 +21,7 @@ export function measureRenderTime(componentName: string, callback: () => void): 
  */
 export function reportWebVitals(metric: any): void {
     if (process.env.NODE_ENV === 'development') {
-        console.log('[Web Vitals]', {
-            name: metric.name,
-            value: metric.value,
-            rating: metric.rating,
-            delta: metric.delta,
-            id: metric.id,
-        });
+
     }
 
     // Send to analytics in production
