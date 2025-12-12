@@ -107,7 +107,7 @@ export default function FriendsPage() {
                     </div>
                     <div className="flex-1">
                         <h3 className="text-base font-bold text-text-primary">{user.displayName || "사용자"}</h3>
-                        <p className="text-xs text-text-secondary">{userProfile?.statusMessage || "상태 메시지 없음"}</p>
+                        <p className="text-xs text-text-secondary">{user.email || "상태 메시지 없음"}</p>
                     </div>
                 </div>
 
