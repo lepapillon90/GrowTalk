@@ -39,10 +39,28 @@ export default function FriendsPage() {
         if (!user) return;
 
         try {
-            // Check if chat already exists (simplified check)
-            // In production, we'd query for existing 1:1 chat
+            // Check if a 1:1 chat already exists between these two users
+            const existingChatQuery = query(
+                collection(db, "chats"),
+                where("participants", "array-contains", user.uid),
+                where("type", "==", "individual")
+            );
 
-            // Create new chat
+            const existingChats = await getDocs(existingChatQuery);
+
+            // Find a chat that contains both users
+            const existingChat = existingChats.docs.find(doc => {
+                const data = doc.data();
+                return data.participants?.includes(friendUid);
+            });
+
+            if (existingChat) {
+                // Chat already exists, navigate to it
+                router.push(`/chat/${existingChat.id}`);
+                return;
+            }
+
+            // Create new chat only if one doesn't exist
             const docRef = await addDoc(collection(db, "chats"), {
                 participants: [user.uid, friendUid],
                 name: `${friendName}, ${user.displayName}`, // Default name
