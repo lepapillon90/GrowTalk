@@ -6,7 +6,8 @@ import TopNavigation from "@/components/layout/TopNavigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Camera, X, Loader2, User } from "lucide-react";
 import { uploadBytes, getDownloadURL, ref, deleteObject } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
+import { compressImage } from "@/lib/imageUtils";
 import toast from "react-hot-toast";
 
 export default function ProfileEditPage() {
@@ -47,13 +48,21 @@ export default function ProfileEditPage() {
 
         try {
             setIsUploading(true);
-            // Create a preview immediately
+            // Create a preview immediately (from original file for speed)
             const previewUrl = URL.createObjectURL(file);
             setPhotoURL(previewUrl);
 
+            // Compress Image
+            let uploadFile = file;
+            try {
+                uploadFile = await compressImage(file);
+            } catch (err) {
+                console.error("Image compression failed, using original:", err);
+            }
+
             // Upload to Firebase Storage
             const storageRef = ref(storage, `profile_images/${userProfile.uid}_${Date.now()}`);
-            await uploadBytes(storageRef, file);
+            await uploadBytes(storageRef, uploadFile);
             const downloadUrl = await getDownloadURL(storageRef);
 
             setPhotoURL(downloadUrl);
