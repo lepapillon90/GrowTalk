@@ -121,7 +121,6 @@ export default function ProfileEditPage() {
             <TopNavigation
                 title="프로필 편집"
                 hasBack
-                backUrl="/more"
                 rightAction={
                     <button
                         onClick={handleSave}

@@ -16,8 +16,7 @@ import {
     limit,
     startAfter,
     getDocs,
-    endAt,
-    increment
+    endAt
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Storage imports
 import { db, storage } from "@/lib/firebase"; // Storage instance
@@ -140,10 +139,9 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
         lastReadUpdateRef.current = setTimeout(async () => {
             try {
-                await setDoc(doc(db, "chats", chatId), {
-                    lastRead: { [user.uid]: serverTimestamp() },
-                    unreadCounts: { [user.uid]: 0 }
-                }, { merge: true });
+                await updateDoc(doc(db, "chats", chatId), {
+                    [`lastRead.${user.uid}`]: serverTimestamp()
+                });
             } catch (error) {
                 console.error("Error updating read status:", error);
             } finally {
@@ -161,10 +159,9 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
             // If definitely unread, update immediately without throttle
             if (latestMessage.createdAt?.seconds && (!myLastRead?.seconds || myLastRead.seconds < latestMessage.createdAt.seconds)) {
-                setDoc(doc(db, "chats", chatId), {
-                    lastRead: { [user.uid]: serverTimestamp() },
-                    unreadCounts: { [user.uid]: 0 }
-                }, { merge: true }).catch(err => console.error("Immediate read update failed", err));
+                updateDoc(doc(db, "chats", chatId), {
+                    [`lastRead.${user.uid}`]: serverTimestamp()
+                }).catch(err => console.error("Immediate read update failed", err));
             }
         }
 
@@ -321,33 +318,13 @@ export default function ChatRoom({ chatId, chatData, participantProfiles }: Chat
 
             await setDoc(doc(db, "chats", chatId, "messages", messageId), messageData);
 
-            // Update Chat Last Message and Unread Counts
-            // Update Chat Last Message and Unread Counts
-            // Use setDoc with merge and NESTED OBJECTS (not dot notation) to ensure correct structure
-            const unreadUpdates: Record<string, any> = {
-                [user.uid]: 0 // Reset my count
-            };
-
-            // Increment unread count for other participants
-            if (chatData?.participants) {
-                chatData.participants.forEach((uid: string) => {
-                    if (uid !== user.uid) {
-                        unreadUpdates[uid] = increment(1);
-                    }
-                });
-            }
-
-            const updates = {
+            // Update Chat Last Message
+            await updateDoc(doc(db, "chats", chatId), {
                 lastMessage: messageData.type === 'image' ? '사진' : messageData.text,
-                lastMessageSenderId: user.uid,
+                lastMessageSenderId: user.uid, // Track sender for read status optimization
                 updatedAt: serverTimestamp(),
-                lastRead: {
-                    [user.uid]: serverTimestamp()
-                },
-                unreadCounts: unreadUpdates
-            };
-
-            await setDoc(doc(db, "chats", chatId), updates, { merge: true });
+                [`lastRead.${user.uid}`]: serverTimestamp()
+            });
 
             // Remove from optimistic list (Live listener will pick it up)
             setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));

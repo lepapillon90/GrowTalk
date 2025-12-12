@@ -36,23 +36,17 @@ export default function VirtualChatList({ chats, currentUserId, participantProfi
             }
         }
 
-        // Calculate unread status (Legacy method for fallback)
+        // Calculate unread status
         let isUnread = false;
+
         if (chat.updatedAt && currentUserId) {
+            // If I sent the last message, it's definitely read
             if (chat.lastMessageSenderId === currentUserId) {
                 isUnread = false;
             } else {
                 const myLastRead = chat.lastRead?.[currentUserId];
                 isUnread = !myLastRead || (chat.updatedAt?.toMillis?.() || 0) > ((myLastRead?.toMillis?.() || 0) + 1000);
             }
-        }
-
-        // Ensure unreadCount is treated as number 
-        let unreadCount = 0;
-        if (chat.unreadCounts && typeof chat.unreadCounts[currentUserId] === 'number') {
-            unreadCount = chat.unreadCounts[currentUserId];
-        } else if (isUnread) {
-            unreadCount = 1;
         }
 
         return (
@@ -117,15 +111,11 @@ export default function VirtualChatList({ chats, currentUserId, participantProfi
                             </div>
 
                             <div className="flex items-center justify-between gap-4">
-                                <p className={`text-sm truncate leading-relaxed ${unreadCount > 0 ? "text-text-primary font-medium" : "text-text-secondary"}`}>
+                                <p className={`text-sm truncate leading-relaxed ${isUnread ? "text-text-primary font-medium" : "text-text-secondary"}`}>
                                     {chat.lastMessage || "대화가 없습니다."}
                                 </p>
-                                {unreadCount > 0 && (
-                                    <div className="min-w-[1.25rem] h-5 px-1.5 bg-brand-500 rounded-full flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.5)]">
-                                        <span className="text-[10px] font-bold text-white leading-none">
-                                            {unreadCount > 99 ? "99+" : unreadCount}
-                                        </span>
-                                    </div>
+                                {isUnread && (
+                                    <div className="w-2.5 h-2.5 bg-brand-500 rounded-full shrink-0 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                                 )}
                             </div>
                         </div>

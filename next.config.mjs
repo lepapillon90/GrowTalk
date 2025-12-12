@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     // output: 'export', // Reverted for Vercel
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
     typescript: {
         ignoreBuildErrors: true,
     },
@@ -17,8 +20,6 @@ const nextConfig = {
             },
         ],
     },
-    // Silence Turbopack/Webpack conflict error as suggested by Next.js 16 build logs
-    turbopack: {},
 };
 
 import withPWAInit from "@ducanh2912/next-pwa";

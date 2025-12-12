@@ -20,7 +20,7 @@ export default function MorePage() {
 
     const handleLogout = async () => {
         await signOut();
-        router.replace("/login");
+        router.replace("/");
     };
 
     if (loading) return null;

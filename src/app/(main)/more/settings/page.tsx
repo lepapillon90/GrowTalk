@@ -32,7 +32,7 @@ export default function SettingsPage() {
 
     const handleLogout = async () => {
         await signOut();
-        router.replace("/login");
+        router.replace("/");
     };
 
     const getThemeLabel = () => {
