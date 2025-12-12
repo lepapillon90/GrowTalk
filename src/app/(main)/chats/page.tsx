@@ -5,6 +5,7 @@ import TopNavigation from "@/components/layout/TopNavigation";
 import { MessageCircle, Search, PlusCircle, User } from "lucide-react";
 import Link from "next/link";
 import { ChatListSkeleton } from "@/components/ui/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -67,11 +68,11 @@ export default function ChatsPage() {
                 {loading ? (
                     <ChatListSkeleton />
                 ) : chats.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[60vh] text-text-secondary">
-                        <MessageCircle className="w-16 h-16 mb-4 opacity-20" />
-                        <p>대화방이 없습니다.</p>
-                        <p className="text-xs mt-2">친구 탭에서 대화를 시작해보세요!</p>
-                    </div>
+                    <EmptyState
+                        icon={MessageCircle}
+                        title="대화방이 없습니다"
+                        description="친구 탭에서 대화를 시작해보세요!"
+                    />
                 ) : (
                     chats.map((chat) => (
                         <Link key={chat.id} href={`/chat/${chat.id}`} className="flex items-center gap-4 py-3 hover:bg-white/5 rounded-2xl transition-colors px-3 -mx-2 group">
