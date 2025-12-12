@@ -4,20 +4,22 @@ import { useEffect, useState } from "react";
 
 import TopNavigation from "@/components/layout/TopNavigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { User as UserIcon, Search, UserPlus, MessageCircle as MessageIcon } from "lucide-react"; // Renamed MessageCircle to prevent conflict
+import { User as UserIcon, Search, UserPlus, MessageCircle as MessageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AddFriendModal from "@/components/friends/AddFriendModal";
+import FriendRequestCard from "@/components/friends/FriendRequestCard";
+import FriendCard from "@/components/friends/FriendCard";
+import { useFriendRequests } from "@/hooks/useFriendRequests";
+import { useFriends } from "@/hooks/useFriends";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function FriendsPage() {
     const router = useRouter();
     const { user, loading } = useAuthStore();
-    // Mock Friends Data for now - In real app, this comes from 'friends' subcollection
-    const mockFriends = [
-        { uid: "mock_user_1", name: "김철수", status: "오늘 저녁 뭐 먹지?" },
-        { uid: "mock_user_2", name: "이영희", status: "주말에 등산 가자!" }
-    ];
+    const { requests, loading: requestsLoading, acceptRequest, rejectRequest } = useFriendRequests(user?.uid);
+    const { friends, loading: friendsLoading } = useFriends(user?.uid);
 
     const [imageError, setImageError] = useState(false);
     const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
@@ -114,28 +116,50 @@ export default function FriendsPage() {
                 {/* Divider */}
                 <div className="border-t border-white/5"></div>
 
+                {/* Friend Requests Section */}
+                {!requestsLoading && requests.length > 0 && (
+                    <>
+                        <div>
+                            <h4 className="text-sm font-bold text-text-secondary mb-3">친구 요청 {requests.length}</h4>
+                            <div className="space-y-2">
+                                {requests.map((request) => (
+                                    <FriendRequestCard
+                                        key={request.id}
+                                        request={request}
+                                        onAccept={() => acceptRequest(request.id, request.from.uid)}
+                                        onReject={() => rejectRequest(request.id)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="border-t border-white/5"></div>
+                    </>
+                )}
+
                 {/* Friends Section */}
                 <div>
-                    <h4 className="text-sm font-bold text-text-secondary mb-3">친구 {mockFriends.length}</h4>
-                    <div className="space-y-2">
-                        {mockFriends.map((friend) => (
-                            <div key={friend.uid} className="flex items-center gap-4 py-2 hover:bg-white/5 rounded-2xl transition-colors px-2 -mx-2 group">
-                                <div className="w-12 h-12 rounded-xl bg-bg-paper border border-white/5 flex items-center justify-center overflow-hidden group-hover:border-brand-500/50 transition-colors">
-                                    <UserIcon className="w-6 h-6 text-text-secondary/50" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-bold text-text-primary truncate">{friend.name}</h3>
-                                    <p className="text-xs text-text-secondary truncate">{friend.status}</p>
-                                </div>
-                                <button
-                                    onClick={() => startChat(friend.uid, friend.name)}
-                                    className="p-2 hover:bg-brand-500/10 rounded-xl transition-colors"
-                                >
-                                    <MessageIcon className="w-5 h-5 text-brand-500" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
+                    <h4 className="text-sm font-bold text-text-secondary mb-3">친구 {friends.length}</h4>
+                    {friendsLoading ? (
+                        <div className="text-center py-8">
+                            <p className="text-sm text-text-secondary">로딩 중...</p>
+                        </div>
+                    ) : friends.length === 0 ? (
+                        <EmptyState
+                            icon={<UserIcon className="w-12 h-12" />}
+                            title="친구가 없습니다"
+                            description="우측 상단의 + 버튼을 눌러 친구를 추가해보세요"
+                        />
+                    ) : (
+                        <div className="space-y-2">
+                            {friends.map((friend) => (
+                                <FriendCard
+                                    key={friend.uid}
+                                    friend={friend}
+                                    onStartChat={startChat}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
