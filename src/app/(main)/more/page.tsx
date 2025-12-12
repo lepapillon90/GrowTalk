@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function MorePage() {
-    const { signOut, user, userProfile } = useAuthStore();
+    const { signOut, user, userProfile, loading } = useAuthStore();
     const router = useRouter();
     const [imageError, setImageError] = useState(false);
 
@@ -22,6 +22,8 @@ export default function MorePage() {
         await signOut();
         router.replace("/login");
     };
+
+    if (!user) return null;
 
     return (
         <div className="pb-20">
@@ -52,7 +54,7 @@ export default function MorePage() {
                         </div>
                         <div className="flex-1">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                                {userProfile?.displayName || "사용자"}
+                                {userProfile?.displayName || user?.displayName || "사용자"}
                                 <span className="text-xs font-normal text-text-secondary bg-white/5 px-2 py-0.5 rounded-full">편집</span>
                             </h2>
                             <p className="text-sm text-text-secondary truncate">{userProfile?.statusMessage || user?.email}</p>
