@@ -10,11 +10,16 @@ import { collection, query, where, onSnapshot, orderBy } from "firebase/firestor
 import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import { format } from "date-fns";
+import ChatSearchModal from "@/components/chat/ChatSearchModal";
+import { useRouter } from "next/navigation";
 
 export default function ChatsPage() {
+    const router = useRouter();
+    const router = useRouter();
     const { user } = useAuthStore();
     const [chats, setChats] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     useEffect(() => {
         if (!user) return;
@@ -58,7 +63,12 @@ export default function ChatsPage() {
                 title="채팅"
                 rightAction={
                     <div className="flex items-center gap-4">
-                        <button className="text-text-primary hover:text-text-accent transition-colors"><Search className="w-6 h-6" /></button>
+                        <button
+                            onClick={() => setIsSearchOpen(true)}
+                            className="text-text-primary hover:text-text-accent transition-colors"
+                        >
+                            <Search className="w-6 h-6" />
+                        </button>
                         <Link href="/chats/new" className="text-text-primary hover:text-text-accent transition-colors"><PlusCircle className="w-6 h-6" /></Link>
                     </div>
                 }
@@ -123,6 +133,14 @@ export default function ChatsPage() {
                     ))
                 )}
             </div>
+
+            {/* Search Modal */}
+            <ChatSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                chats={chats}
+                onSelectChat={(chatId) => router.push(`/chat/${chatId}`)}
+            />
         </div>
     );
 }
