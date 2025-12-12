@@ -91,16 +91,16 @@ export default function FriendsPage() {
                     <div
                         className="w-14 h-14 rounded-2xl bg-bg-paper border border-white/5 overflow-hidden flex items-center justify-center"
                         style={{
-                            backgroundImage: user.photoURL && !imageError ? `url(${user.photoURL})` : 'none',
+                            backgroundImage: user?.photoURL && !imageError ? `url(${user.photoURL})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center'
                         }}
                     >
-                        {(!user.photoURL || imageError) && <UserIcon className="w-8 h-8 text-text-secondary/50" />}
+                        {(!user?.photoURL || imageError) && <UserIcon className="w-8 h-8 text-text-secondary/50" />}
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-base font-bold text-text-primary">{user.displayName || "사용자"}</h3>
-                        <p className="text-xs text-text-secondary">{user.email || "상태 메시지 없음"}</p>
+                        <h3 className="text-base font-bold text-text-primary">{user?.displayName || "사용자"}</h3>
+                        <p className="text-xs text-text-secondary">{user?.email || "상태 메시지 없음"}</p>
                     </div>
                 </div>
 
