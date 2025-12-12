@@ -11,17 +11,12 @@ import { db } from "@/lib/firebase";
 
 export default function FriendsPage() {
     const router = useRouter();
-    const { user, loading, initializeAuth } = useAuthStore();
+    const { user, loading } = useAuthStore();
     // Mock Friends Data for now - In real app, this comes from 'friends' subcollection
     const mockFriends = [
         { uid: "mock_user_1", name: "김철수", status: "오늘 저녁 뭐 먹지?" },
         { uid: "mock_user_2", name: "이영희", status: "주말에 등산 가자!" }
     ];
-
-    useEffect(() => {
-        const unsubscribe = initializeAuth();
-        return () => unsubscribe();
-    }, [initializeAuth]);
 
     const [imageError, setImageError] = useState(false);
 

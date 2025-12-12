@@ -3,6 +3,7 @@ import { Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
 import ToasterProvider from "@/components/providers/ToasterProvider";
 import FCMInitializer from "@/components/providers/FCMInitializer";
+import AuthProvider from "@/components/providers/AuthProvider";
 
 const nanumMyeongjo = Nanum_Myeongjo({
   weight: ["400", "700", "800"],
@@ -43,9 +44,11 @@ export default function RootLayout({
         className={`${nanumMyeongjo.variable} font-sans antialiased bg-bg text-text-primary overflow-hidden`}
       >
         <div className="mx-auto max-w-[430px] h-[100dvh] bg-bg relative shadow-2xl overflow-hidden flex flex-col">
-          <ToasterProvider />
-          <FCMInitializer />
-          {children}
+          <AuthProvider>
+            <ToasterProvider />
+            <FCMInitializer />
+            {children}
+          </AuthProvider>
         </div>
       </body>
     </html>
