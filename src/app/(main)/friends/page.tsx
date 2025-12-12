@@ -72,8 +72,6 @@ export default function FriendsPage() {
         }
     };
 
-    if (!user) return null;
-
     return (
         <div className="pb-20">
             <TopNavigation
