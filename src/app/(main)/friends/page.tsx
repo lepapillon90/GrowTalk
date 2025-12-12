@@ -8,6 +8,7 @@ import { User as UserIcon, Search, UserPlus, MessageCircle as MessageIcon } from
 import { useRouter } from "next/navigation";
 import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import AddFriendModal from "@/components/friends/AddFriendModal";
 
 export default function FriendsPage() {
     const router = useRouter();
@@ -19,6 +20,7 @@ export default function FriendsPage() {
     ];
 
     const [imageError, setImageError] = useState(false);
+    const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
 
     useEffect(() => {
         setImageError(false);
@@ -79,7 +81,12 @@ export default function FriendsPage() {
                 rightAction={
                     <div className="flex items-center gap-4">
                         <button className="text-text-primary hover:text-text-accent transition-colors"><Search className="w-6 h-6" /></button>
-                        <button className="text-text-primary hover:text-text-accent transition-colors"><UserPlus className="w-6 h-6" /></button>
+                        <button
+                            onClick={() => setIsAddFriendOpen(true)}
+                            className="text-text-primary hover:text-text-accent transition-colors"
+                        >
+                            <UserPlus className="w-6 h-6" />
+                        </button>
                     </div>
                 }
             />
@@ -131,6 +138,13 @@ export default function FriendsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Add Friend Modal */}
+            <AddFriendModal
+                isOpen={isAddFriendOpen}
+                onClose={() => setIsAddFriendOpen(false)}
+                currentUserUid={user?.uid || ""}
+            />
         </div>
     );
 }
