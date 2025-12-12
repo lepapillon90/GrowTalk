@@ -116,8 +116,8 @@ export default function LandingPage() {
               <span className="text-brand-500">품격 있는 대화</span>
             </motion.h1>
 
-            <motion.p variants={fadeInUp} className="text-lg text-text-secondary leading-relaxed max-w-2xl mx-auto">
-              더 나은 내일을 꿈꾸는 사람들과 함께 소통하세요.<br />
+            <motion.p variants={fadeInUp} className="text-lg text-text-secondary leading-relaxed max-w-2xl mx-auto break-keep whitespace-pre-wrap">
+              더 나은 내일을 꿈꾸는 사람들과 함께 소통하세요.
               GrowTalk는 당신의 성장을 응원하는 프리미엄 메신저입니다.
             </motion.p>
 
