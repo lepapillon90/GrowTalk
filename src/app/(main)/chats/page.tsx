@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import TopNavigation from "@/components/layout/TopNavigation";
-import { MessageCircle, Search, PlusCircle, User } from "lucide-react";
+import { MessageCircle, Search, PlusCircle, User, Users } from "lucide-react";
 import Link from "next/link";
 import { ChatListSkeleton } from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
@@ -11,6 +11,8 @@ import { db } from "@/lib/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import { format } from "date-fns";
 import ChatSearchModal from "@/components/chat/ChatSearchModal";
+import CreateGroupModal from "@/components/chat/CreateGroupModal";
+import { useFriends } from "@/hooks/useFriends";
 import { useRouter } from "next/navigation";
 
 
@@ -20,6 +22,8 @@ export default function ChatsPage() {
     const [chats, setChats] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+    const { friends } = useFriends(user?.uid);
 
     useEffect(() => {
         if (!user) return;
@@ -69,7 +73,12 @@ export default function ChatsPage() {
                         >
                             <Search className="w-6 h-6" />
                         </button>
-                        <Link href="/chats/new" className="text-text-primary hover:text-text-accent transition-colors"><PlusCircle className="w-6 h-6" /></Link>
+                        <button
+                            onClick={() => setIsCreateGroupOpen(true)}
+                            className="text-text-primary hover:text-text-accent transition-colors"
+                        >
+                            <Users className="w-6 h-6" />
+                        </button>
                     </div>
                 }
             />
@@ -140,6 +149,14 @@ export default function ChatsPage() {
                 onClose={() => setIsSearchOpen(false)}
                 chats={chats}
                 onSelectChat={(chatId) => router.push(`/chat/${chatId}`)}
+            />
+
+            {/* Create Group Modal */}
+            <CreateGroupModal
+                isOpen={isCreateGroupOpen}
+                onClose={() => setIsCreateGroupOpen(false)}
+                friends={friends}
+                currentUserId={user?.uid || ""}
             />
         </div>
     );
