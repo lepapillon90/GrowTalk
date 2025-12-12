@@ -39,6 +39,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
     const messageInputRef = useRef<HTMLInputElement>(null); // Moved to top
     const [chatData, setChatData] = useState<any>(null);
     const [participantProfiles, setParticipantProfiles] = useState<Record<string, any>>({}); // Added participantProfiles state
+    const [pendingMessages, setPendingMessages] = useState<Map<string, 'sending' | 'sent' | 'failed'>>(new Map()); // Track message status
 
     useEffect(() => {
         // Auto-focus input on mount
@@ -126,7 +127,12 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
         e.preventDefault();
         if ((!newMessage.trim() && !imageFile) || !user) return;
 
+        // Generate temporary ID for optimistic UI
+        const tempId = `temp_${Date.now()}`;
         setIsUploading(true);
+
+        // Mark as sending
+        setPendingMessages(prev => new Map(prev).set(tempId, 'sending'));
 
         try {
             let imageUrl = "";
@@ -154,7 +160,24 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                 type: imageUrl ? "image" : "text",
             };
 
-            await addDoc(collection(db, "chats", chatId, "messages"), messageData);
+            const docRef = await addDoc(collection(db, "chats", chatId, "messages"), messageData);
+
+            // Mark as sent
+            setPendingMessages(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(tempId);
+                newMap.set(docRef.id, 'sent');
+                return newMap;
+            });
+
+            // Clear sent status after 2 seconds
+            setTimeout(() => {
+                setPendingMessages(prev => {
+                    const newMap = new Map(prev);
+                    newMap.delete(docRef.id);
+                    return newMap;
+                });
+            }, 2000);
 
             // Update Chat Last Message
             await updateDoc(doc(db, "chats", chatId), {
@@ -171,6 +194,9 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
         } catch (error) {
             console.error("Error sending message:", error);
             toast.error("메시지 전송 실패");
+
+            // Mark as failed
+            setPendingMessages(prev => new Map(prev).set(tempId, 'failed'));
         } finally {
             setIsUploading(false);
         }
@@ -220,6 +246,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                     }
 
                     const senderProfile = participantProfiles[msg.senderId];
+                    const messageStatus = pendingMessages.get(msg.id);
 
                     return (
                         <MessageBubble
@@ -230,6 +257,7 @@ export default function ChatRoom({ chatId }: ChatRoomProps) {
                             profileUrl={senderProfile?.photoURL}
                             displayName={senderProfile?.displayName || "알 수 없음"}
                             unreadCount={unreadCount}
+                            status={messageStatus}
                         />
                     );
                 })}

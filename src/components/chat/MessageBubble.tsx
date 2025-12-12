@@ -1,7 +1,9 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { User } from "lucide-react";
+import { User, Check, CheckCheck, Clock, AlertCircle } from "lucide-react";
 import { useState } from "react";
+
+type MessageStatus = 'sending' | 'sent' | 'failed';
 
 interface MessageBubbleProps {
     message: {
@@ -17,6 +19,7 @@ interface MessageBubbleProps {
     profileUrl?: string; // Receiver's profile image
     displayName?: string; // Receiver's name
     unreadCount?: number;
+    status?: MessageStatus; // Message send status
 }
 
 export default function MessageBubble({
@@ -25,7 +28,8 @@ export default function MessageBubble({
     showProfile = false,
     profileUrl,
     displayName,
-    unreadCount = 0
+    unreadCount = 0,
+    status
 }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false);
 
@@ -35,6 +39,22 @@ export default function MessageBubble({
             .replace("AM", "오전")
             .replace("PM", "오후")
         : "";
+
+    // Status icon component
+    const StatusIcon = () => {
+        if (!isMe || !status) return null;
+
+        switch (status) {
+            case 'sending':
+                return <Clock className="w-3 h-3 text-text-secondary/50" />;
+            case 'sent':
+                return <CheckCheck className="w-3 h-3 text-brand-500" />;
+            case 'failed':
+                return <AlertCircle className="w-3 h-3 text-red-400" />;
+            default:
+                return null;
+        }
+    };
 
     return (
         <div className={cn("flex w-full mb-4", isMe ? "justify-end" : "justify-start")}>
@@ -66,13 +86,16 @@ export default function MessageBubble({
                 )}
 
                 <div className="flex items-end gap-1.5">
-                    {/* Time (Left for Me) */}
+                    {/* Time + Status (Left for Me) */}
                     {isMe && (
-                        <div className="flex flex-col items-end">
+                        <div className="flex flex-col items-end gap-0.5">
                             {unreadCount > 0 && (
-                                <span className="text-[10px] text-brand-500 font-bold mb-0.5">{unreadCount}</span>
+                                <span className="text-[10px] text-brand-500 font-bold">{unreadCount}</span>
                             )}
-                            <span className="text-[10px] text-text-secondary min-w-fit mb-1">{formattedTime}</span>
+                            <div className="flex items-center gap-1">
+                                <StatusIcon />
+                                <span className="text-[10px] text-text-secondary min-w-fit">{formattedTime}</span>
+                            </div>
                         </div>
                     )}
 
