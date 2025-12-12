@@ -1,72 +1,72 @@
-# GrowTalk Technical Roadmap
+# GrowTalk 기술 로드맵
 
-## 1. Architecture Overview
-- **Framework**: Next.js 15+ (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + Lucide Icons (Pretendard Font)
-- **Backend (BaaS)**: Firebase
-  - **Auth**: Email/Password, Google OAuth
-  - **Database**: Cloud Firestore (NoSQL)
-  - **Storage**: Firebase Storage (Images)
-  - **Hosting**: Vercel (Frontend/Edge)
+## 1. 아키텍처 개요
+- **프레임워크**: Next.js 15+ (App Router)
+- **언어**: TypeScript
+- **스타일링**: Tailwind CSS + Lucide Icons (Pretendard 폰트)
+- **백엔드 (BaaS)**: Firebase
+  - **인증**: 이메일/비밀번호, Google OAuth
+  - **데이터베이스**: Cloud Firestore (NoSQL)
+  - **스토리지**: Firebase Storage (이미지)
+  - **호스팅**: Vercel (프론트엔드/Edge)
 
-## 2. Current Status (As of Dec 2025)
-### ✅ Frontend Core
-- Mobile-first responsive layout (App-like UI).
-- `next/image` replaced with standard `img` tags for consistent behavior with external URLs.
-- Client-side image compression (max 800px, 0.7 quality) before upload using HTML Canvas.
-- PWA manifest configured (basic installability).
+## 2. 현재 상태 (2025년 12월 기준)
+### ✅ 프론트엔드 코어
+- 모바일 우선 반응형 레이아웃 (앱 스타일 UI)
+- 외부 URL과의 일관된 동작을 위해 `next/image` 대신 표준 `img` 태그 사용
+- HTML Canvas를 사용한 클라이언트 측 이미지 압축 (최대 800px, 품질 0.7)
+- PWA 매니페스트 구성 (기본 설치 가능)
 
-### ✅ Chat System
-- Real-time updates using Firestore `onSnapshot`.
-- Optimistic UI updates for sending messages.
-- Image message support.
-- Basic message types (text, image).
+### ✅ 채팅 시스템
+- Firestore `onSnapshot`을 사용한 실시간 업데이트
+- 메시지 전송 시 옵티미스틱 UI 업데이트
+- 이미지 메시지 지원
+- 기본 메시지 유형 (텍스트, 이미지)
 
-### ✅ Authentication & User Management
-- Zustand store (`useAuthStore`) for global user state.
-- Profile management (Avatar, Display Name, Status Message).
-- Auto-deletion of old avatar images on update.
+### ✅ 인증 및 사용자 관리
+- 전역 사용자 상태를 위한 Zustand 스토어 (`useAuthStore`)
+- 프로필 관리 (아바타, 표시 이름, 상태 메시지)
+- 업데이트 시 이전 아바타 이미지 자동 삭제
 
-## 3. Short-term Technical Goals (Q1 2026)
-### 🚀 Performance Optimization
-- [ ] **Virtual Scrolling**: Implement `react-window` or similar for chat message lists to handle 1000+ messages smoothly.
-- [ ] **Image Lazy Loading Refinement**: Ensure the native `loading="lazy"` attribute is effective or implement `IntersectionObserver` for message images.
-- [ ] **Bundle Size Analysis**: Use `@next/bundle-analyzer` to identify and trim unused dependencies.
+## 3. 단기 기술 목표 (2026년 1분기)
+### 🚀 성능 최적화
+- [ ] **가상 스크롤링**: 1000개 이상의 메시지를 원활하게 처리하기 위해 `react-window` 또는 유사 라이브러리 구현
+- [ ] **이미지 지연 로딩 개선**: 네이티브 `loading="lazy"` 속성의 효과 확인 또는 메시지 이미지에 `IntersectionObserver` 구현
+- [ ] **번들 크기 분석**: `@next/bundle-analyzer`를 사용하여 미사용 종속성 식별 및 제거
 
-### 🔔 Notifications
+### 🔔 알림
 - [ ] **Firebase Cloud Messaging (FCM)**:
-  - Setup service worker for background notifications.
-  - Handle foreground notifications (Toast).
-  - Permission request UX flow.
+  - 백그라운드 알림을 위한 서비스 워커 설정
+  - 포그라운드 알림 처리 (Toast)
+  - 권한 요청 UX 플로우
 
-### 🛡️ Security & Reliability
-- [ ] **Firestore Security Rules**:
-  - Tighten rules for `chats` collection (only participants can read/write).
-  - Validate write data schemas (types, length limits) in rules.
-- [ ] **Error Boundaries**: Implement global and component-level error boundaries (especially for ChatRoom).
+### 🛡️ 보안 및 신뢰성
+- [ ] **Firestore 보안 규칙**:
+  - `chats` 컬렉션에 대한 규칙 강화 (참가자만 읽기/쓰기 가능)
+  - 규칙에서 쓰기 데이터 스키마 검증 (타입, 길이 제한)
+- [ ] **에러 바운더리**: 전역 및 컴포넌트 레벨 에러 바운더리 구현 (특히 ChatRoom)
 
-## 4. Mid-term Goals (Q2 2026)
-### 🧪 Quality Assurance
-- [ ] **Unit Testing**: Jest + React Testing Library for utility functions and core components.
-- [ ] **E2E Testing**: Playwright setup for critical flows (Login -> Chat -> Send Message).
+## 4. 중기 목표 (2026년 2분기)
+### 🧪 품질 보증
+- [ ] **단위 테스트**: 유틸리티 함수 및 핵심 컴포넌트에 대한 Jest + React Testing Library
+- [ ] **E2E 테스트**: 핵심 플로우에 대한 Playwright 설정 (로그인 -> 채팅 -> 메시지 전송)
 
-### 📱 PWA Enhancements
-- [ ] **Offline Support**:
-  - Cache static assets.
-  - IndexedDB for offline message viewing (sync when online).
-- [ ] **Install Prompt**: Custom install prompt for better conversion.
+### 📱 PWA 개선
+- [ ] **오프라인 지원**:
+  - 정적 자산 캐시
+  - 오프라인 메시지 조회를 위한 IndexedDB (온라인 시 동기화)
+- [ ] **설치 프롬프트**: 더 나은 전환을 위한 커스텀 설치 프롬프트
 
-## 5. Long-term Considerations
-- **End-to-End Encryption (E2EE)**: evaluate signals protocol or simpler libraries if privacy requirement increases.
-- **Search Engine**: Algolia or Typesense integration if chat search across all history is needed (Firestore is limited for text search).
-- **Voice/Video Calls**: WebRTC integration (PeerJS or LiveKit).
+## 5. 장기 고려 사항
+- **종단 간 암호화 (E2EE)**: 개인정보 요구사항 증가 시 Signal 프로토콜 또는 간단한 라이브러리 평가
+- **검색 엔진**: 전체 히스토리에 대한 채팅 검색이 필요한 경우 Algolia 또는 Typesense 통합 (Firestore는 텍스트 검색에 제한적)
+- **음성/영상 통화**: WebRTC 통합 (PeerJS 또는 LiveKit)
 
-## 6. Infrastructure & DevOps
+## 6. 인프라 및 DevOps
 - **CI/CD**:
-  - Current: Vercel automatic deployments on push.
-  - Future: GitHub Actions for running linters/tests before merge.
-- **Monitoring**: Sentry integration for real-time error tracking.
+  - 현재: 푸시 시 Vercel 자동 배포
+  - 향후: 머지 전 린터/테스트 실행을 위한 GitHub Actions
+- **모니터링**: 실시간 에러 추적을 위한 Sentry 통합
 
 ---
-*This document tracks the technical evolution and architectural decisions of GrowTalk.*
+*이 문서는 GrowTalk의 기술적 진화와 아키텍처 결정을 추적합니다.*
