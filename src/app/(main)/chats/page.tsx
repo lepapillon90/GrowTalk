@@ -96,14 +96,29 @@ export default function ChatsPage() {
                     chats.map((chat) => (
                         <Link key={chat.id} href={`/chat/${chat.id}`} className="flex items-center gap-4 py-3 hover:bg-white/5 rounded-2xl transition-colors px-3 -mx-2 group">
                             <div className="relative w-14 h-14 rounded-2xl bg-bg-paper border border-white/5 flex items-center justify-center overflow-hidden group-hover:border-brand-500/50 transition-colors">
-                                <MessageCircle className="w-6 h-6 text-text-secondary/50" />
+                                {chat.type === 'group' ? (
+                                    chat.groupImage ? (
+                                        <img src={chat.groupImage} alt={chat.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Users className="w-7 h-7 text-brand-500" />
+                                    )
+                                ) : (
+                                    <MessageCircle className="w-6 h-6 text-text-secondary/50" />
+                                )}
                             </div>
                             <div className="flex-1 min-w-0 conversation-preview">
                                 <div className="flex items-center justify-between mb-1">
-                                    <h3 className="text-base font-bold text-text-primary truncate">
-                                        {chat.name || "알 수 없는 대화방"}
-                                    </h3>
-                                    <span className="text-[10px] text-text-secondary">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <h3 className="text-base font-bold text-text-primary truncate">
+                                            {chat.name || "알 수 없는 대화방"}
+                                        </h3>
+                                        {chat.type === 'group' && (
+                                            <span className="text-xs text-text-secondary flex-shrink-0">
+                                                {chat.participants?.length || 0}명
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-[10px] text-text-secondary flex-shrink-0">
                                         {chat.updatedAt?.toDate ? (() => {
                                             try {
                                                 return format(chat.updatedAt.toDate(), "a h:mm")

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface TopNavigationProps {
-    title: string;
+    title: React.ReactNode;
     hasBack?: boolean;
     rightAction?: React.ReactNode;
     transparent?: boolean;
@@ -28,9 +28,9 @@ export default function TopNavigation({
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
                 )}
-                <h1 className="text-lg font-bold font-serif text-text-primary tracking-wide">
+                <div className="text-lg font-bold font-serif text-text-primary tracking-wide">
                     {title}
-                </h1>
+                </div>
             </div>
 
             {rightAction && (
