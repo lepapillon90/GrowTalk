@@ -13,8 +13,8 @@ import { format } from "date-fns";
 import ChatSearchModal from "@/components/chat/ChatSearchModal";
 import { useRouter } from "next/navigation";
 
+
 export default function ChatsPage() {
-    const router = useRouter();
     const router = useRouter();
     const { user } = useAuthStore();
     const [chats, setChats] = useState<any[]>([]);
